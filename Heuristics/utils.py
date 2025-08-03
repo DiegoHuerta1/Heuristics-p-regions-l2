@@ -61,7 +61,7 @@ def l2_objective_function_diss_matrix(P: dict[int, list[int]], diss_matrix: np.n
             # add the corresponding term
             sum += diss_matrix[i, j]/n_k
 
-    return sum
+    return float(sum)
 
 
 def get_node_region_idx(P: dict[int, list], v) -> None | int:
