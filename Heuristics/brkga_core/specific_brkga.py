@@ -1,9 +1,8 @@
 import igraph
 import numpy as np
-import itertools
 
 from .generic_brkga import GenericBRKGA
-from .utils import generate_dissimilarity_matrix, l2_objective_function_diss_matrix, compute_P_names
+from ..utils import generate_dissimilarity_matrix, l2_objective_function_diss_matrix
 
 
 # ----------------------------------------------------------------------------------------------

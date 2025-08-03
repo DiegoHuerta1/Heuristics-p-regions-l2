@@ -3,9 +3,7 @@ import seaborn as sns
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import matplotlib.lines
-
 from .utils import get_node_region_idx
-
 
 
 def get_dict_palette(num_colors: int, palette_name: str) -> dict:
