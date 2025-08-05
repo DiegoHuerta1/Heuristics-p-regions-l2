@@ -5,6 +5,7 @@ import os
 from tqdm import tqdm
 import pandas as pd
 import json
+import time
 
 
 from .utils import all_heuristics_list
@@ -265,6 +266,7 @@ class Batch_Execution():
         # Iterate on not completed ids
         for id_ in tqdm(self.all_ids):
             if id_ in self.completed_ids:
+                time.sleep(0.01)
                 continue
 
             # Get elements of the execution from id name
