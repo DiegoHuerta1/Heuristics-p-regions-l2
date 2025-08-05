@@ -41,7 +41,7 @@ def run_all_on_graph(graph: igraph.Graph, num_regions: int,
             The second one with the partitions obtained by each method 
     """
 
-    # # Use all heuristics if none specified
+    # Use all heuristics if none specified
     if len(heuristics) == 0:
         heuristics = all_heuristics_list
 

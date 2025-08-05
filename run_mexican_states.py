@@ -1,19 +1,8 @@
-from Heuristics import run_all_on_graph
-from Heuristics.utils import generate_dissimilarity_matrix
+from Heuristics import Batch_Execution
 import igraph
 
 
-# read a graph
-id_state = "18"
-path_graphs = "./Mexican States Data/Graph Instances/"
-with open(path_graphs + f"{id_state}.pkl", "rb") as f:
-    graph = igraph.Graph.Read_Pickle(f)
-
-
-# --------------------
-
-# Parameterss
-
+# Parameters for the methods
 brkga_config = {
     "population_size": 500,
     "elite_fraction": 0.2,
@@ -24,7 +13,6 @@ brkga_config = {
     "max_time": 600,  
     "seed": 10
 }
-
 pygeoda_config = {
     "redcap__method": "fullorder-averagelinkage",
     "schc__linkage_method": "complete",
@@ -32,21 +20,31 @@ pygeoda_config = {
     "seed": 10,
 }
 
-num_regions = 3
+# Numbers of regions L
+def get_number_of_regions(n: int) -> list[int]:
+    if n < 20:
+        return [k for k in [3, 5, 7] if k<n]
+    elif n < 60:
+        return [k for k in [5, 7, 10] if k<n]
+    else:
+        return [k for k in [10, 15, 20] if k<n]
 
-diss_matrix = generate_dissimilarity_matrix(graph)
-
+# Final settings
+data_folder = "./Mexican States Sample Data/"
+output_folder = "./Mexican States Results/"
 heuristics = []
+repetitions = 2
 
-# --------------------
+# Execution
+model = Batch_Execution(brkga_config, pygeoda_config, get_number_of_regions,
+                        data_folder, output_folder, heuristics, repetitions)
+model.print_initial_information()
+# model.run()
+model.print_final_information()
+print(model.results_df.iloc[:, :10].head())
 
-metrics, partitions = run_all_on_graph(graph = graph, num_regions = num_regions,
-                                       brkga_config = brkga_config, pygeoda_config = pygeoda_config,
-                                       diss_matrix = diss_matrix, heuristics = heuristics)
 
-from pprint import pprint
 
-print("-"*50)
-pprint(metrics)
-print("-"*50)
+
+
 
