@@ -68,11 +68,14 @@ model = Batch_Execution(
 model.print_initial_information()
 
 # Run all experiments
-model.run()
+# model.run()
+
+
+# ================================================
+# 3. ANALYZE RESULTS
+# ================================================
+
 
 # Print performance summary
 model.print_final_information()
-# Peek into the raw results
-print(model.results_df.iloc[:, :10].head()) 
-
 

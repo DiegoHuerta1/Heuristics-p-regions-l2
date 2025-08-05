@@ -40,51 +40,69 @@ class Batch_Execution():
         """
 
         # General atributes
-        self.brkga_config = brkga_config
-        self.pygeoda_config = pygeoda_config
-        self.get_k_func = get_k_func
-        self.repetitions = repetitions
+        self.brkga_config: dict = brkga_config
+        self.pygeoda_config: dict = pygeoda_config
+        self.get_k_func: Callable[[int], list[int]] = get_k_func
+        self.repetitions: int = repetitions
+        self.heuristics: list[str] = heuristics if heuristics else all_heuristics_list
 
-        # Data and instances
-        self.data_folder = data_folder
+        # Input data and instances
+        self.data_folder: str = data_folder
         self.instances: dict[str, igraph.Graph] = self.get_instances()
+
+        # Columns of interest for the results df
+        self.info_columns: list[str] = ["ID", "N", "K"]
+        self.f_columns: list[str] = [f"{h}__f" for h in self.heuristics]
+        self.time_columns: list[str] = [f"{h}__time" for h in self.heuristics]
+        self.general_columns: list[str] = self.info_columns + self.f_columns + self.time_columns
 
         # Results folder and path
         if output_folder is None:
             output_folder = data_folder + "Results/"
-        self.output_folder = output_folder
+        self.output_folder: str = output_folder
         os.makedirs(output_folder, exist_ok=True)
-        self.output_df_path = Path(self.output_folder) / "df_results.csv"
+        self.output_df_path: Path = Path(self.output_folder) / "df_results.csv"
+
+        # Results data (list of dicts, df, rank df)
         self.results: list[dict] = self.get_partial_results()
-        if self.results:
-            self.results_df: pd.DataFrame = self.order_columns(pd.DataFrame(self.results))
-        else:
-            self.results_df: pd.DataFrame = pd.DataFrame()
+        self.results_df: pd.DataFrame = self.get_results_df(self.results)
+        self.ranks_df: pd.DataFrame = self.get_ranks_df(self.results_df)
 
         # Progress folder (ids) and files
-        self.ids_folder = output_folder + "Progress/"
+        self.ids_folder: str = output_folder + "Progress/"
         os.makedirs(self.ids_folder, exist_ok=True)
-        self.all_ids_path = Path(self.ids_folder) / "all_ids.txt"
-        self.completed_ids_path = Path(self.ids_folder) / "completed_ids.txt"
+        self.all_ids_path: Path = Path(self.ids_folder) / "all_ids.txt"
+        self.completed_ids_path: Path = Path(self.ids_folder) / "completed_ids.txt"
+
+        # Lists of all and completed ids
         self.all_ids: list[str] = self.get_all_ids()
         self.completed_ids: list[str] = self.get_completed_ids()
 
         # Aditional folders 
-        self.plot_folder = output_folder + "Plots/"
-        self.partitions_folder = output_folder + "Partitions/"
+        self.plot_folder: str = output_folder + "Plots/"
+        self.partitions_folder: str = output_folder + "Partitions/"
         os.makedirs(self.plot_folder, exist_ok=True)
         os.makedirs(self.partitions_folder, exist_ok=True)
 
-        # Use all heuristics if none specified
-        self.heuristics: list[str] = heuristics if heuristics else all_heuristics_list
+        # Save Parameters
+        self.parameters_folder: str = output_folder + "Parameters/"
+        os.makedirs(self.parameters_folder, exist_ok=True)
+        brkga_params_path: Path = Path(self.parameters_folder) / "brkga_config.json"
+        pygeoda_params_path: Path = Path(self.parameters_folder) / "pygeoda_config.json"
+        with open(brkga_params_path, "w") as json_file:
+            json.dump(self.brkga_config, json_file, indent=4)
+        with open(pygeoda_params_path, "w") as json_file:
+            json.dump(self.pygeoda_config, json_file, indent=4)
 
+    # ---------------------------
+    # Instances and Ids ---------
+    # ---------------------------
 
     def get_instances(self) -> dict[str, igraph.Graph]:
         """ 
         Get all the instances from the data folder.
         Save in dictionary {name_intance: graph}
         """
-
         instances = {}
         # Iterate on all .pkl files
         pkl_files = Path(self.data_folder).glob("*.pkl")
@@ -109,7 +127,6 @@ class Batch_Execution():
         If an 'all_ids.txt' file exists in the progress folder, read from it.
         Otherwise, compute the IDs and save them to that file.
         """
-
         # If cached version exists, read and return it
         if self.all_ids_path.exists():
             with open(self.all_ids_path, "r") as f:
@@ -146,27 +163,59 @@ class Batch_Execution():
             return completed_ids
         # Otherwise, not a single id has been completed
         return []
-
+    
+    # ---------------------------
+    # Manage results  ----------
+    # ---------------------------
 
     def get_partial_results(self) -> list[dict]:
         """ 
         Try to get results from the output folder
         If not then partial results are empty
         """
-
         try:
             df_partial_results = pd.read_csv(self.output_df_path)
             return df_partial_results.to_dict(orient="records")
         except:
             return []
         
+
+    def order_columns(self, df: pd.DataFrame) -> pd.DataFrame:
+        """ 
+        Order the df columns.
+        First general information, then _f for each method, then time,
+        at the end additional information.
+        """
+        aditional_info = [col for col in df.columns if col not in self.general_columns]
+        col_order = self.info_columns + self.f_columns + self.time_columns + aditional_info
+        return df[col_order]
+
+
+    def get_results_df(self, results: list[dict]) -> pd.DataFrame:
+        """ 
+        Transform results from list of dicts to a pandas dataframe
+        """
+        if results:
+            return self.order_columns(pd.DataFrame(results))
+        else:
+            return pd.DataFrame()
     
+
+    def get_ranks_df(self, results_df: pd.DataFrame) -> pd.DataFrame:
+        """ 
+        Transorm a df of results to ranks
+        """
+        if results_df.shape[0] > 0:
+            return results_df[self.f_columns].round(8).rank(axis = 1)
+        else:
+            return pd.DataFrame()
+
+
     def save_results_iteration(self, id_: str, metrics: dict, partitions: dict, graph: igraph.Graph):
         """ 
         After completed the execution of an id
         Save the resutls and mark the id as complete
         """
-
         # Mark id as complete
         self.completed_ids.append(id_)
         with open(self.completed_ids_path, "w") as f:
@@ -174,7 +223,7 @@ class Batch_Execution():
 
         # Save metric results from this execution id
         self.results.append(metrics)
-        self.results_df = self.order_columns(pd.DataFrame(self.results))
+        self.results_df = self.get_results_df(self.results)
         self.results_df.to_csv(self.output_df_path, index=False)
 
         # Save partitions with names of nodes, not index
@@ -183,25 +232,10 @@ class Batch_Execution():
             partition_path = Path(self.partitions_folder) / f"{method}__{id_}.txt"
             with open(partition_path, "w") as json_file:
                 json.dump(P_names, json_file, indent=4)
-
-
-    def order_columns(self, df: pd.DataFrame) -> pd.DataFrame:
-        """ 
-        Order the df columns.
-        First general information, then _f for each method, then time,
-        at the end additional information.
-        """
-        # Identify sets of columns
-        general_info = ["ID", "N", "K"]
-        f_columns = [c for c in df.columns if c.endswith("__f")]
-        time_columns = [c for c in df.columns if c.endswith("__time")]
-        # Aditional information
-        known_cols = set(general_info + f_columns + time_columns)
-        aditional_info = [col for col in df.columns if col not in known_cols]
-        # Order
-        col_order = general_info + f_columns + time_columns + aditional_info
-        return df[col_order]
         
+    # ---------------------------
+    # Display information -------
+    # ---------------------------
 
     def print_initial_information(self):
         """ 
@@ -221,37 +255,47 @@ class Batch_Execution():
         """
         print("-"*50)
         print(f"Completed {len(self.completed_ids)} executions for each heuristic.")
+        self.results_df = self.get_results_df(self.results)
+        self.ranks_df = self.get_ranks_df(self.results_df)
+
+        # In case there are no results yet
         if self.results_df.empty:
             print("No results to summarize.")
             print("-" * 50)
             return
         
-        # Collect mean and median for each heuristic
-        stats = []
-        for heuristic in self.heuristics:
-            f_col = f"{heuristic}__f"
-            if f_col not in self.results_df.columns:
-                continue
-            values = self.results_df[f_col]
-            stats.append({
-                "heuristic": heuristic,
-                "mean": values.mean(),
-                "median": values.median()
+        # Compute mean objective value 
+        f_means = {
+            h: self.results_df[f"{h}__f"].mean()
+            for h in self.heuristics
+        }
+        # Compute mean rank
+        mean_ranks = self.ranks_df.mean()
+        # Win count per heuristic (lowest rank in each row)
+        min_ranks = self.ranks_df.min(axis=1)
+        win_counts = (self.ranks_df.eq(min_ranks, axis=0)).sum()
+    
+        # Combine all stats into a summary table
+        summary = []
+        for h in self.heuristics:
+            summary.append({
+                "heuristic": h,
+                "mean_f": f_means.get(h, float('nan')),
+                "mean_rank": mean_ranks.get(f"{h}__f", float('nan')),
+                "wins": win_counts.get(f"{h}__f", 0)
             })
 
-        # Sort and print mean table
-        print("\nMean objective value:")
-        print(f"{'Heuristic':<20} {'Mean':>10}")
-        for row in sorted(stats, key=lambda x: x["mean"]):
-            print(f"{row['heuristic']:<20} {row['mean']:>10.4f}")
+        # Print summary table
+        print(f"\n{'Heuristic':<20} {'Mean f':>10} {'Mean Rank':>12} {'Wins':>8}")
+        for row in sorted(summary, key=lambda x: x["mean_rank"]):
+            print(f"{row['heuristic']:<20} {row['mean_f']:>10.4f} {row['mean_rank']:>12.4f} {row['wins']:>8}")
 
-        print("\nMedian objective value:")
-        print(f"{'Heuristic':<20} {'Median':>10}")
-        for row in sorted(stats, key=lambda x: x["median"]):
-            print(f"{row['heuristic']:<20} {row['median']:>10.4f}")
+        print("-" * 50)
 
-        print("-"*50)
 
+    # ---------------------------
+    # Run executions ------------
+    # ---------------------------
 
     def run(self):
         """ 
