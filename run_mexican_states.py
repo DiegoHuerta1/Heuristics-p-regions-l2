@@ -39,7 +39,7 @@ repetitions = 2
 model = Batch_Execution(brkga_config, pygeoda_config, get_number_of_regions,
                         data_folder, output_folder, heuristics, repetitions)
 model.print_initial_information()
-# model.run()
+model.run()
 model.print_final_information()
 print(model.results_df.iloc[:, :10].head())
 
