@@ -1,5 +1,4 @@
 .vscode/
 .venv/
 .ipynb_checkpoints/
-.Heuristics/__pycache__/
-.Mexican States Results/
+Mexican-States-Results/

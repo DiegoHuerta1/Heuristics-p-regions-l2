@@ -39,7 +39,7 @@ def get_number_of_regions(n: int) -> list[int]:
 data_folder = "./Mexican States Sample Data/"
 
 # The output folder defines where to save the analysis.
-output_folder = "./Mexican States Results/"
+output_folder = "./Mexican-States-Results/"
 
 # List of heuristics e.g. ["mst_brkga", "pygeoda__azp_sa"] 
 # Leave empty to run all available.
