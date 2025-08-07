@@ -292,7 +292,6 @@ class Batch_Execution():
 
         print("-" * 50)
 
-
     # ---------------------------
     # Run executions ------------
     # ---------------------------
@@ -310,7 +309,7 @@ class Batch_Execution():
         # Iterate on not completed ids
         for id_ in tqdm(self.all_ids):
             if id_ in self.completed_ids:
-                time.sleep(0.01)
+                time.sleep(0.05)
                 continue
 
             # Get elements of the execution from id name
