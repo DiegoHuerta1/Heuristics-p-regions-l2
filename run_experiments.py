@@ -36,7 +36,7 @@ def get_number_of_regions(n: int) -> list[int]:
 
 
 # The data folder should point to the location of your graph instances, all `.pkl` files will be processed.
-data_folder = "./Mexican States Sample Data/"
+data_folder = "./Mexican States Sample Data/Graph Instances/"
 
 # The output folder defines where to save the analysis.
 output_folder = "./Mexican-States-Results/"
@@ -68,7 +68,7 @@ model = Batch_Execution(
 model.print_initial_information()
 
 # Run all experiments
-# model.run()
+model.run()
 
 
 # ================================================
