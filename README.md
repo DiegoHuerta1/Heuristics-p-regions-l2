@@ -9,7 +9,7 @@ The optimization goal is:
 $$
 f(P) := 
     \sum_{P_k \in P} 
-    \sum_{i \in P_k} || x_i - \mu_k ||_2^2
+    \sum_{i \in P_k} \left\| x_i - \mu_k \right\|_2^2
 $$
 
 Where:
@@ -76,5 +76,8 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
+### 4. Run experiments
+
+Modify the 
 
 
