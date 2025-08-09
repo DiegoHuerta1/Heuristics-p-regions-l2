@@ -75,7 +75,17 @@ model.run()
 # 3. ANALYZE RESULTS
 # ================================================
 
-
-# Print performance summary
-model.print_final_information()
+# Indicate the subset of heuristics to consider for the analysis
+heuristics_to_analyze = [
+    "mst_brkga",
+    "st_brkga",
+    "greedy_brkga",
+    "skater",
+    "redcap",
+    "schc",
+    #"azp_greedy",
+    #"azp_sa",
+    #"azp_tabu"
+]
+model.analyze_results(heuristics_to_analyze)
 

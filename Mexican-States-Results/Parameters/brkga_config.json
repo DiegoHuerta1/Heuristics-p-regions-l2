@@ -1,0 +1,10 @@
+{
+    "population_size": 500,
+    "elite_fraction": 0.2,
+    "mutant_fraction": 0.2,
+    "crossover_rate": 0.7,
+    "max_generations": 1000,
+    "tolerance_generations": 100,
+    "max_time": 3600,
+    "seed": 1
+}

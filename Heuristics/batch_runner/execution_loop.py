@@ -6,9 +6,10 @@ from tqdm import tqdm
 import pandas as pd
 import json
 import time
+import matplotlib.pyplot as plt 
+import seaborn as sns
 
-
-from .utils import all_heuristics_list
+from .utils import all_heuristics_list, analyze_friedman
 from ..utils import generate_dissimilarity_matrix, compute_P_names
 from .run_all import run_all_on_graph
 
@@ -50,12 +51,6 @@ class Batch_Execution():
         self.data_folder: str = data_folder
         self.instances: dict[str, igraph.Graph] = self.get_instances()
 
-        # Columns of interest for the results df
-        self.info_columns: list[str] = ["ID", "N", "K"]
-        self.f_columns: list[str] = [f"{h}__f" for h in self.heuristics]
-        self.time_columns: list[str] = [f"{h}__time" for h in self.heuristics]
-        self.general_columns: list[str] = self.info_columns + self.f_columns + self.time_columns
-
         # Results folder and path
         if output_folder is None:
             output_folder = data_folder + "Results/"
@@ -63,10 +58,9 @@ class Batch_Execution():
         os.makedirs(output_folder, exist_ok=True)
         self.output_df_path: Path = Path(self.output_folder) / "df_results.csv"
 
-        # Results data (list of dicts, df, rank df)
+        # Results data (list of dicts, df)
         self.results: list[dict] = self.get_partial_results()
         self.results_df: pd.DataFrame = self.get_results_df(self.results)
-        self.ranks_df: pd.DataFrame = self.get_ranks_df(self.results_df)
 
         # Progress folder (ids) and files
         self.ids_folder: str = output_folder + "Progress/"
@@ -93,6 +87,18 @@ class Batch_Execution():
             json.dump(self.brkga_config, json_file, indent=4)
         with open(pygeoda_params_path, "w") as json_file:
             json.dump(self.pygeoda_config, json_file, indent=4)
+
+
+    def print_initial_information(self):
+        """ 
+        Print general information
+        """
+        print("-"*50)
+        print(f"Batch run considering {len(self.heuristics)} heuristics")
+        print(f"Data folder with {len(self.instances)} instances")
+        print(f"{self.repetitions} repetitions for each pair (instance, num_regions)\n")
+        print(f"Total of {len(self.all_ids)} different executions for each heuristic")
+        print("-"*50)
 
     # ---------------------------
     # Instances and Ids ---------
@@ -186,8 +192,15 @@ class Batch_Execution():
         First general information, then _f for each method, then time,
         at the end additional information.
         """
-        aditional_info = [col for col in df.columns if col not in self.general_columns]
-        col_order = self.info_columns + self.f_columns + self.time_columns + aditional_info
+        # Identify the first columns
+        info_columns: list[str] = ["ID", "N", "K"]
+        f_columns: list[str] = [f"{h}__f" for h in self.heuristics]
+        time_columns: list[str] = [f"{h}__time" for h in self.heuristics]
+        general_columns: list[str] = info_columns + f_columns + time_columns
+        # Any other information
+        aditional_info: list[str] = [col for col in df.columns if col not in general_columns]
+        # Order columns
+        col_order: list[str] = info_columns + f_columns + time_columns + aditional_info
         return df[col_order]
 
 
@@ -201,12 +214,14 @@ class Batch_Execution():
             return pd.DataFrame()
     
 
-    def get_ranks_df(self, results_df: pd.DataFrame) -> pd.DataFrame:
+    def get_ranks_df(self, heuristics: list[str]) -> pd.DataFrame:
         """ 
         Transorm a df of results to ranks
         """
-        if results_df.shape[0] > 0:
-            return results_df[self.f_columns].round(8).rank(axis = 1)
+        if self.results_df.shape[0] > 0:
+            # Filter results of desired heuristics and compute ranks
+            columns_f = [f"{h}__f" for h in heuristics]
+            return self.results_df[columns_f].round(8).rank(axis = 1)
         else:
             return pd.DataFrame()
 
@@ -221,7 +236,7 @@ class Batch_Execution():
         with open(self.completed_ids_path, "w") as f:
             f.write("\n".join(self.completed_ids))
 
-        # Save metric results from this execution id
+        # Save metric results and update df
         self.results.append(metrics)
         self.results_df = self.get_results_df(self.results)
         self.results_df.to_csv(self.output_df_path, index=False)
@@ -233,64 +248,6 @@ class Batch_Execution():
             with open(partition_path, "w") as json_file:
                 json.dump(P_names, json_file, indent=4)
         
-    # ---------------------------
-    # Display information -------
-    # ---------------------------
-
-    def print_initial_information(self):
-        """ 
-        Print general information
-        """
-        print("-"*50)
-        print(f"Batch run considering {len(self.heuristics)} heuristics")
-        print(f"Data folder with {len(self.instances)} instances")
-        print(f"{self.repetitions} repetitions for each pair (instance, num_regions)\n")
-        print(f"Total of {len(self.all_ids)} different executions for each heuristic")
-        print("-"*50)
-
-
-    def print_final_information(self):
-        """ 
-        Summarize performance after execution
-        """
-        print("-"*50)
-        print(f"Completed {len(self.completed_ids)} executions for each heuristic.")
-        self.results_df = self.get_results_df(self.results)
-        self.ranks_df = self.get_ranks_df(self.results_df)
-
-        # In case there are no results yet
-        if self.results_df.empty:
-            print("No results to summarize.")
-            print("-" * 50)
-            return
-        
-        # Compute mean objective value 
-        f_means = {
-            h: self.results_df[f"{h}__f"].mean()
-            for h in self.heuristics
-        }
-        # Compute mean rank
-        mean_ranks = self.ranks_df.mean()
-        # Win count per heuristic (lowest rank in each row)
-        min_ranks = self.ranks_df.min(axis=1)
-        win_counts = (self.ranks_df.eq(min_ranks, axis=0)).sum()
-    
-        # Combine all stats into a summary table
-        summary = []
-        for h in self.heuristics:
-            summary.append({
-                "heuristic": h,
-                "mean_f": f_means.get(h, float('nan')),
-                "mean_rank": mean_ranks.get(f"{h}__f", float('nan')),
-                "wins": win_counts.get(f"{h}__f", 0)
-            })
-
-        # Print summary table
-        print(f"\n{'Heuristic':<20} {'Mean f':>10} {'Mean Rank':>12} {'Wins':>8}")
-        for row in sorted(summary, key=lambda x: x["mean_rank"]):
-            print(f"{row['heuristic']:<20} {row['mean_f']:>10.4f} {row['mean_rank']:>12.4f} {row['wins']:>8}")
-
-        print("-" * 50)
 
     # ---------------------------
     # Run executions ------------
@@ -334,3 +291,161 @@ class Batch_Execution():
             # Mark this execution id as complete
             self.save_results_iteration(id_, metrics, partitions, graph)
 
+
+    # ---------------------------
+    # Analyze Results -----------
+    # ---------------------------
+
+    def analyze_results(self,  heuristics: list[str] = []):
+        """ 
+        Summarize performance, statistical test and visualizations after execution.
+        
+        Args:
+            heuristics (list[str]): Optional subset of heuristics to analyze.
+                                     Defaults to empty list (use all heuristics).
+        """
+        # In case there are no results yet
+        if self.results_df.empty:
+            print("No results to analyze.")
+            print("-" * 50)
+            return
+        
+        # Use full heuristics if none specified
+        heuristics_to_use: list[str] = heuristics if heuristics else self.heuristics
+        
+        print("")
+        print("-"*100)
+        print(f"Completed {len(self.completed_ids)} executions for each heuristic.")
+        print(f"Analyzing results for {len(heuristics_to_use)} heuristics")
+        print(heuristics_to_use)
+
+        # Print general information
+        self._print_heuristics_performance_report(heuristics_to_use)
+        # Statistical test
+        if len(heuristics_to_use) >= 3:
+            self._friedman_test(heuristics_to_use)
+        # Visualizations
+        self.visualizations(heuristics_to_use)
+
+
+    def _print_heuristics_performance_report(self, heuristics: list[str]):
+        """ 
+        Performance information for a subset of heuristics
+        """
+
+        # Compute mean objective value 
+        f_means = {
+            h: self.results_df[f"{h}__f"].mean()
+            for h in heuristics
+        }
+        # Compute mean rank
+        ranks_df: pd.DataFrame = self.get_ranks_df(heuristics)
+        mean_ranks = ranks_df.mean()
+        # Win count per heuristic (lowest rank in each row)
+        min_ranks = ranks_df.min(axis=1)
+        win_counts = (ranks_df.eq(min_ranks, axis=0)).sum()
+    
+        # Combine all stats into a summary table
+        summary = []
+        for h in heuristics:
+            summary.append({
+                "heuristic": h,
+                "mean_f": f_means.get(h, float('nan')),
+                "mean_rank": mean_ranks.get(f"{h}__f", float('nan')),
+                "wins": win_counts.get(f"{h}__f", 0)
+            })
+
+        # Print summary table
+        print("")
+        print("-" * 100)
+        print("Summary table\n")
+        print(f"{'Heuristic':<20} {'Mean f':>10} {'Mean Rank':>12} {'Wins':>8}")
+        for row in sorted(summary, key=lambda x: x["mean_rank"]):
+            print(f"{row['heuristic']:<20} {row['mean_f']:>10.4f} {row['mean_rank']:>12.4f} {row['wins']:>8}")
+        print("-" * 100)
+
+
+    def _friedman_test(self, heuristics):
+        """  
+        Perform Friedman test to analyze differences in performance and execution time
+        """
+
+        # Analyze differences in final result (f)
+        fig, axes = plt.subplot_mosaic(
+            [["Big"],
+            ["Big"],
+            ["Small"]],
+            figsize = (10, 12), dpi = 300
+        )
+        analyze_friedman(self.results_df, heuristics, "f",
+                         ax_sign_plot = axes["Big"],
+                         ax_cd_diagram = axes["Small"], verbose=True)
+        fig.suptitle("Differences in final f", fontsize=26, fontweight='bold')
+        plt.savefig(self.plot_folder + 'Differences_f.png', bbox_inches='tight')
+        plt.close()
+
+        # Analyze differences in time
+        fig, axes = plt.subplot_mosaic(
+            [["Big"],
+            ["Big"],
+            ["Small"]],
+            figsize = (10, 12), dpi = 300
+        )
+        analyze_friedman(self.results_df, heuristics, "time",
+                         ax_sign_plot = axes["Big"],
+                         ax_cd_diagram = axes["Small"], verbose=True)
+        fig.suptitle("Differences in final time", fontsize=26, fontweight='bold')
+        plt.savefig(self.plot_folder + 'Differences_time.png', bbox_inches='tight')
+        plt.close()
+
+
+    # ---------------------------
+    # Visualizations ------------
+    # ---------------------------
+
+    def visualizations(self, heuristics: list[str]):
+        """ 
+        Make summary visualizations
+        """
+        # Construct variables for visualization
+        self.f_columns_plot = [f"{h}__f" for h in heuristics]
+        self.time_columns_plot = [f"{h}__time" for h in heuristics]
+        # Call all helper functions
+        self.plot_boxplot_objectives()
+        self.plot_boxplot_times()
+
+
+    def plot_boxplot_objectives(self):
+        df_melted = self.results_df.melt(
+            id_vars=["ID", "N", "K"],
+            value_vars = self.f_columns_plot,
+            var_name = "Heuristic",
+            value_name = "Objective"
+        )
+        df_melted["Heuristic"] = df_melted["Heuristic"].str.replace("__f", "", regex=False)
+
+        plt.figure(figsize=(12, 6))
+        sns.boxplot(hue="Heuristic", y="Objective", data=df_melted)
+        plt.xticks(rotation=45, ha="right")
+        plt.title("Distribution of Objective Values per Heuristic")
+        plt.tight_layout()
+        plt.savefig(self.plot_folder + 'boxplot_objective.png', bbox_inches='tight')
+        plt.close()
+
+
+    def plot_boxplot_times(self):
+        df_melted = self.results_df.melt(
+            id_vars=["ID", "N", "K"],
+            value_vars = self.time_columns_plot,
+            var_name="Heuristic",
+            value_name="Execution Time"
+        )
+        df_melted["Heuristic"] = df_melted["Heuristic"].str.replace("__time", "", regex=False)
+
+        plt.figure(figsize=(12, 6))
+        sns.boxplot(hue="Heuristic", y="Execution Time", data=df_melted)
+        plt.xticks(rotation=45, ha="right")
+        plt.title("Distribution of Execution Time per Heuristic")
+        plt.tight_layout()
+        plt.savefig(self.plot_folder + 'boxplot_time.png', bbox_inches='tight')
+        plt.close()
