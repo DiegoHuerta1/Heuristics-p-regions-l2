@@ -8,7 +8,7 @@ def main():
  
     # Define instance
     instance_path = "./Instances_3/4.pkl"
-    instance_path = "./Instances_Mexico/15.pkl"
+    instance_path = "./Instances_Mexico/05.pkl"
     plots_path = "./Example_plots/"
     os.makedirs(plots_path, exist_ok=True)
     num_regions = 10
@@ -27,7 +27,7 @@ def main():
     
     # BRKGA parameters
     config = {
-        "population_size": 50,
+        "population_size": 200,
         "elite_fraction": 0.2,
         "mutant_fraction": 0.2,
         "crossover_rate": 0.7,
