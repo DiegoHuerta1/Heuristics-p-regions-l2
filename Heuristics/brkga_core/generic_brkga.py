@@ -186,7 +186,7 @@ class GenericBRKGA(ABC):
         # Main loop (generations 1 - max_generations)
         for _ in range(1, self.max_generations + 1):
             # Print status every generation
-            # print(f"Generation {_}: Best fitness = {fitness_values.min():.6f}")
+            # print(f"Generation {_}: Best fitness = {fitness_values.min():.6f}. Mean fitness = {fitness_values.mean():.6f}. Std = {fitness_values.std():.6f}")
 
             # Sort population according to fitness
             sorted_indices = np.argsort(fitness_values)
