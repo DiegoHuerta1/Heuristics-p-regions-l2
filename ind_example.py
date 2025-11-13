@@ -8,7 +8,7 @@ def main():
  
     # Define instance
     instance_path = "./Instances_3/4.pkl"
-    instance_path = "./Instances_Mexico/05.pkl"
+    instance_path = "./Instances_Mexico/20.pkl"
     plots_path = "./Example_plots/"
     os.makedirs(plots_path, exist_ok=True)
     num_regions = 10
@@ -31,8 +31,8 @@ def main():
         "elite_fraction": 0.2,
         "mutant_fraction": 0.2,
         "crossover_rate": 0.7,
-        "max_generations": 500,
-        "tolerance_generations": 100,
+        "max_generations": 1,
+        "tolerance_generations": 1,
         "max_time": 9000,  
         "seed": seed
     }
@@ -42,18 +42,18 @@ def main():
     print("-"*100)
     print("MST BRKGA\n")
     brkga = MST_BRKGA(graph, num_regions, diss_matrix, **config)
-    brkga.run()
-    brkga.print_statistics()
-    brkga.plot_evolution(plots_path + "mst_brkga_evolution.png")    
+    #brkga.run()
+    #brkga.print_statistics()
+    #brkga.plot_evolution(plots_path + "mst_brkga_evolution.png")    
     
     
     # Apply a ST BRKGA
     print("-"*100)
     print("ST BRKGA\n")
     brkga = ST_BRKGA(graph, num_regions, diss_matrix ,**config)
-    brkga.run()
-    brkga.print_statistics()
-    brkga.plot_evolution(plots_path + "st_brkga_evolution.png")
+    #brkga.run()
+    #brkga.print_statistics()
+    #brkga.plot_evolution(plots_path + "st_brkga_evolution.png")
     
     
     # Apply a Greedy BRKGA
@@ -62,7 +62,7 @@ def main():
     brkga = Greedy_BRKGA(graph, num_regions, diss_matrix, **config)
     brkga.run()
     brkga.print_statistics()
-    brkga.plot_evolution(plots_path + "greedy_brkga_evolution.png")
+    #brkga.plot_evolution(plots_path + "greedy_brkga_evolution.png")
 
 
 if __name__ == "__main__":
