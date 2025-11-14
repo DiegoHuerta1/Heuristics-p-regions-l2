@@ -13,7 +13,7 @@ def _init_worker(obj):
     global _shared_obj
     _shared_obj = obj
 def _worker(chromosome):  
-    return _shared_obj.chromosome_fitness(chromosome)
+    return _shared_obj.chromosome_fitness(chromosome) # type: ignore
 
 
 class GenericBRKGA_fast(ABC):

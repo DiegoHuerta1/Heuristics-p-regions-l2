@@ -12,7 +12,7 @@ def main():
     os.makedirs(plots_path, exist_ok=True)
     num_regions = 10
     # Reproducibility
-    seed = 1
+    seed = 29
     
     # Read instance
     with open(instance_path, "rb") as f:
@@ -26,12 +26,12 @@ def main():
     
     # BRKGA parameters
     config = {
-        "population_size": 400,
+        "population_size": 100,
         "elite_fraction": 0.2,
         "mutant_fraction": 0.2,
         "crossover_rate": 0.7,
-        "max_generations": 50,
-        "tolerance_generations": 100,
+        "max_generations": 100,
+        "tolerance_generations": 328,
         "max_time": 9000,  
         "seed": seed
     }
@@ -59,17 +59,27 @@ def main():
     print("-"*100)
     print("Greedy BRKGA\n")
     brkga = Greedy_BRKGA(graph, num_regions, diss_matrix, **config)
-    brkga.run()
-    brkga.print_statistics()
+    #brkga.run()
+    #brkga.print_statistics()
     #brkga.plot_evolution(plots_path + "greedy_brkga_evolution.png")
 
-    from Heuristics.brkga_fast.specific_brkga_fast import Greedy_BRKGA_fast
     # Apply a Greedy BRKGA fast
+    from Heuristics.brkga_fast.specific_brkga_fast import Greedy_BRKGA_fast
     print("-"*100)
     print("Greedy BRKGA fast\n")
     brkga = Greedy_BRKGA_fast(graph, num_regions, diss_matrix, **config)
     brkga.run()
     brkga.print_statistics()
+
+
+    # Aplly the parallel version
+    from Heuristics.brkga_fast.brkga_functional import Greedy_BRKGA_functional
+    print("-"*100)
+    print("Greedy BRKGA parallel\n")
+    brkga = Greedy_BRKGA_functional(graph, num_regions, diss_matrix, **config)
+    brkga.run()
+    brkga.print_statistics()
+
 
 
 
