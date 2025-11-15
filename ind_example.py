@@ -4,7 +4,7 @@ import igraph
 import os
 import multiprocessing as mp
 from Heuristics.brkga_fast.brkga_functional import Greedy_BRKGA_functional
-from Heuristics.brkga_fast.greedy_brkga_parallel import Greedy_BRKGA_parallel
+
 
 def main():   
  
@@ -78,14 +78,6 @@ def main():
     print("-"*100)
     print("Greedy BRKGA functional\n")
     brkga = Greedy_BRKGA_functional(graph, num_regions, diss_matrix, **config)
-    brkga.run()
-    brkga.print_statistics()
-
-
-    # Aplly the parallel version
-    print("-"*100)
-    print("Greedy BRKGA parallel\n")
-    brkga = Greedy_BRKGA_parallel(graph, num_regions, diss_matrix, **config)
     brkga.run()
     brkga.print_statistics()
 
