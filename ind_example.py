@@ -2,7 +2,9 @@ from Heuristics import MST_BRKGA, ST_BRKGA, Greedy_BRKGA
 from Heuristics.utils import generate_dissimilarity_matrix
 import igraph
 import os
-
+import multiprocessing as mp
+from Heuristics.brkga_fast.brkga_functional import Greedy_BRKGA_functional
+from Heuristics.brkga_fast.greedy_brkga_parallel import Greedy_BRKGA_parallel
 
 def main():   
  
@@ -59,9 +61,9 @@ def main():
     print("-"*100)
     print("Greedy BRKGA\n")
     brkga = Greedy_BRKGA(graph, num_regions, diss_matrix, **config)
-    #brkga.run()
-    #brkga.print_statistics()
-    #brkga.plot_evolution(plots_path + "greedy_brkga_evolution.png")
+    brkga.run()
+    brkga.print_statistics()
+    brkga.plot_evolution(plots_path + "greedy_brkga_evolution.png")
 
     # Apply a Greedy BRKGA fast
     from Heuristics.brkga_fast.specific_brkga_fast import Greedy_BRKGA_fast
@@ -72,18 +74,31 @@ def main():
     brkga.print_statistics()
 
 
-    # Aplly the parallel version
-    from Heuristics.brkga_fast.brkga_functional import Greedy_BRKGA_functional
+    # Aplly the functional version
     print("-"*100)
-    print("Greedy BRKGA parallel\n")
+    print("Greedy BRKGA functional\n")
     brkga = Greedy_BRKGA_functional(graph, num_regions, diss_matrix, **config)
     brkga.run()
     brkga.print_statistics()
 
 
+    # Aplly the parallel version
+    print("-"*100)
+    print("Greedy BRKGA parallel\n")
+    brkga = Greedy_BRKGA_parallel(graph, num_regions, diss_matrix, **config)
+    brkga.run()
+    brkga.print_statistics()
 
 
 if __name__ == "__main__":
+    # Establece el método de inicio a "spawn" ANTES de hacer nada
+    try:
+        mp.set_start_method("spawn")
+    except RuntimeError:
+        # (Esto solo evita un error si se llama dos veces)
+        pass
+
+
     from cProfile import Profile
     from pstats import SortKey, Stats
         
@@ -100,11 +115,3 @@ if __name__ == "__main__":
     # filter stats (only top 10)
     # stats.print_stats(10)
     
-
-
-
-
-
-
-
-

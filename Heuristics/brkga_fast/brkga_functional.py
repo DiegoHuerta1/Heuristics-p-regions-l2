@@ -44,6 +44,7 @@ class Greedy_BRKGA_functional:
             self.N = len(adj_graph_or_dict)                
             self.adjacency = adj_graph_or_dict
             assert dissimilarity_matrix is not None, "If adjacency dict is provided, dissimilarity matrix must be provided too."
+            self.dissimilarity_matrix = dissimilarity_matrix
         # set other attributes
         self.num_pairs = self.N*(self.N - 1)//2   
         self.n = self.num_pairs + self.N     
@@ -66,10 +67,10 @@ class Greedy_BRKGA_functional:
         else:
             self.p = population_size
         assert 0 < elite_fraction < 0.5, "Elite fraction must be in (0, 0.5)"
-        self.p_e = int(population_size * elite_fraction) 
+        self.p_e = int(self.p * elite_fraction)
         assert 0 < mutant_fraction < 1, "Mutant fraction must be in (0, 1)"
         assert elite_fraction + mutant_fraction < 1, "Elite and mutan fractions must add up to less than 1"
-        self.p_m = int(population_size * mutant_fraction)  
+        self.p_m = int(self.p * mutant_fraction)  
         self.offspring_size = self.p - self.p_e - self.p_m
         assert 0.5 < crossover_rate < 1, "Crossover rate must be in (0.5, 1)"
         self.ro_e = crossover_rate
