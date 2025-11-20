@@ -49,7 +49,7 @@ def main():
     print("Parallel (with shared memory)\n")
     from Heuristics.brkga_parallel.brkga_parallel import Greedy_BRKGA_parallel
     brkga = Greedy_BRKGA_parallel(graph, num_regions, diss_matrix, **config,
-                                num_processors=4)
+                                num_workers=5)
     brkga.run()
     brkga.print_statistics()
     brkga.plot_evolution(plots_path + "greedy_parallel_evolution.png") 
