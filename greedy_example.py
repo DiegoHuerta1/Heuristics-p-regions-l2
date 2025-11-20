@@ -1,4 +1,3 @@
-from Heuristics import MST_BRKGA, ST_BRKGA, Greedy_BRKGA
 from Heuristics.utils import generate_dissimilarity_matrix
 import igraph
 import os
@@ -29,40 +28,39 @@ def main():
         "elite_fraction": 0.2,
         "mutant_fraction": 0.2,
         "crossover_rate": 0.7,
-        "max_generations": 100,
+        "max_generations": 200,
         "tolerance_generations": 328,
         "max_time": 9000,  
-        "seed": seed
+        "seed": seed,
+        "verbose": True
     }
-    
-    # Apply a MST BRKGA
+
+    # Secuential code (functional version)
+    # print("-"*100)
+    # print("Functional\n")
+    # from Heuristics.brkga_parallel.brkga_functional import Greedy_BRKGA_functional
+    # brkga = Greedy_BRKGA_functional(graph, num_regions, diss_matrix, **config)
+    # brkga.run()
+    # brkga.print_statistics()
+    # brkga.plot_evolution(plots_path + "greedy_func_evolution.png") 
+
+    # Parallel (with shared memory)
     print("-"*100)
-    print("MST BRKGA\n")
-    brkga = MST_BRKGA(graph, num_regions, diss_matrix, **config)
+    print("Parallel (with shared memory)\n")
+    from Heuristics.brkga_parallel.brkga_parallel import Greedy_BRKGA_parallel
+    brkga = Greedy_BRKGA_parallel(graph, num_regions, diss_matrix, **config,
+                                num_processors=4)
     brkga.run()
     brkga.print_statistics()
-    brkga.plot_evolution(plots_path + "mst_brkga_evolution.png")    
-    
-    # Apply a ST BRKGA
-    print("-"*100)
-    print("ST BRKGA\n")
-    brkga = ST_BRKGA(graph, num_regions, diss_matrix ,**config)
-    brkga.run()
-    brkga.print_statistics()
-    brkga.plot_evolution(plots_path + "st_brkga_evolution.png")
-    
-    # Apply a Greedy BRKGA
-    print("-"*100)
-    print("Greedy BRKGA\n")
-    brkga = Greedy_BRKGA(graph, num_regions, diss_matrix, **config)
-    brkga.run()
-    brkga.print_statistics()
-    brkga.plot_evolution(plots_path + "greedy_brkga_evolution.png")
+    brkga.plot_evolution(plots_path + "greedy_parallel_evolution.png") 
+
+
 
 
 if __name__ == "__main__":
     from cProfile import Profile
-    from pstats import SortKey, Stats  
+    from pstats import SortKey, Stats
+        
     with Profile() as profile:
         main()
     
@@ -73,5 +71,7 @@ if __name__ == "__main__":
     # sort by cummulative time (or by: SortKey.TIME, SortKey.CALLS)
     stats.sort_stats(SortKey.CUMULATIVE) 
     # filter stats (only top 10)
+    print("-"*100)
+    print(" ")
     stats.print_stats(10)
     
