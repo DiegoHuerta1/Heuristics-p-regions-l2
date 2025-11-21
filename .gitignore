@@ -2,3 +2,5 @@
 *.py[cod]
 *.pyc[cod]
 __pycache__/
+
+Example_plots/
