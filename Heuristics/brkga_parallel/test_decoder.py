@@ -106,7 +106,8 @@ def decode(chromosome: np.ndarray,
 
 def get_matrix_from_chromosome(vector, N: int, r: int):
     M = np.reshape(vector, (N, r))
-    return M @ M.T
+    G = M @ M.T
+    return 1/G
 
 
 def vec_to_sym(vector: np.ndarray, N : int) -> np.ndarray:

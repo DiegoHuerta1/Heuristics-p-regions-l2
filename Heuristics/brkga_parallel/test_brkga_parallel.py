@@ -300,6 +300,7 @@ class Greedy_BRKGA_parallel_test:
                     import matplotlib.pyplot as plt
                     from Heuristics.brkga_parallel.test_decoder import get_matrix_from_chromosome
                     plt.imshow(self.dissimilarity_matrix)
+                    plt.colorbar()
                     plt.savefig(f"./Example_plots/dissimilarity_matrix.png")
                     plt.close()
 
@@ -315,9 +316,11 @@ class Greedy_BRKGA_parallel_test:
                         matrix_c = get_matrix_from_chromosome(best_chromosome[:self.break_point],
                                                               self.N, self.rank)
                         plt.imshow(matrix_c)
+                        plt.colorbar()
                         plt.savefig(f"./Example_plots/best_matrix_gen_{idx}.png")
                         plt.close()
                         plt.imshow(matrix_c * self.dissimilarity_matrix)
+                        plt.colorbar()
                         plt.savefig(f"./Example_plots/best_matrix_times_dist_gen_{idx}.png")
                         plt.close()
 
