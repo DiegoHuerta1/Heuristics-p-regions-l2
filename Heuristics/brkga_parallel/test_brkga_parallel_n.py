@@ -11,39 +11,59 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # DECODER
-from .test_decoder import decode, chromosome_fitness
+from .test_decoder_n import chromosome_fitness_n
+from .test_decoder import decode # just for the final part
 
 
 # ----------------------------------------------------------------------------------------------
 
-# Variable global que existirá DENTRO de cada worker
-_WORKER_ADJACENCY = None
+_WORKER_ADJ_OFFSETS = None
+_WORKER_ADJ_NEIG = None
 
-def _init_worker_adjacency(adj_dict: dict):
+
+def build_adjacency_arrays(adjacency_dict, N):
     """
-    Esta función es llamada una vez por worker.
-    Guarda el diccionario de adyacencia en su scope global.
+    Transforms the adj dict into adj arrays
+    Returns: (offsets, neighbors)
     """
-    global _WORKER_ADJACENCY
-    _WORKER_ADJACENCY = adj_dict
+    offsets = np.zeros(N + 1, dtype=np.int32)
+    neighbors = []
+    
+    current_offset = 0
+    for i in range(N):
+        offsets[i] = current_offset
+        neigs = adjacency_dict.get(i, [])
+        neighbors.extend(neigs)
+        current_offset += len(neigs)
+    offsets[N] = current_offset
+    
+    return offsets, np.array(neighbors, dtype=np.int32)
+
+
+def _init_worker_adjacency(offsets: np.ndarray, neighbors: np.ndarray):
+    """
+    Store the adj arrays in global scope
+    """
+    global _WORKER_ADJ_OFFSETS
+    global _WORKER_ADJ_NEIG
+    _WORKER_ADJ_OFFSETS = offsets
+    _WORKER_ADJ_NEIG = neighbors
+
 
 def chromosome_fitness_wrapper(chromosome: np.ndarray, 
                                dissimilarity_matrix: np.ndarray,
                                N: int, rank: int, break_point: int,
                                K: int) -> float:
     """
-    Un wrapper que llama a la función real, pero
-    toma 'adjacency' de la variable global del worker.
+    Wrapper to call the real function using the global adj arrays
     """
-    # Llama a tu 'chromosome_fitness' original,
-    # pero le pasa el diccionario global
-    return chromosome_fitness(chromosome, dissimilarity_matrix,
+    return chromosome_fitness_n(chromosome, dissimilarity_matrix,
                               N, rank, break_point,  K,
-                              _WORKER_ADJACENCY) # type: ignore
+                              _WORKER_ADJ_OFFSETS, _WORKER_ADJ_NEIG) # type: ignore
 
 
 # ----------------------------------------------------------------------------------------------
-class Greedy_BRKGA_parallel_test:
+class Greedy_BRKGA_parallel_test_n:
 
     def __init__(self, adj_graph_or_dict: igraph.Graph | dict,
                  num_regions: int,
@@ -67,6 +87,9 @@ class Greedy_BRKGA_parallel_test:
             self.adjacency = adj_graph_or_dict
             assert dissimilarity_matrix is not None, "If adjacency dict is provided, dissimilarity matrix must be provided too."
             self.dissimilarity_matrix = dissimilarity_matrix
+
+        # Transform adjacency dict to arrays
+        self.adj_offsets, self.adj_neighbors = build_adjacency_arrays(self.adjacency, self.N)
 
         # set length of chromosomes
         self.rank = rank
@@ -252,7 +275,7 @@ class Greedy_BRKGA_parallel_test:
         chunk_size=  int(np.ceil(n_parallel / self.num_workers))
         with Pool(processes = self.num_workers,
                   initializer = _init_worker_adjacency, 
-                  initargs= (self.adjacency,)) as pool: 
+                  initargs= (self.adj_offsets, self.adj_neighbors)) as pool: 
             processor = None 
             self.print_general_info("Pool created :)")
             self.print_general_info(f"Evolution with {self.num_workers} processors. Chunks of size {chunk_size}")
@@ -270,10 +293,10 @@ class Greedy_BRKGA_parallel_test:
                 pop1_first_half = self.generate_custom_vectors(size_pop1)
                 pop1_second_half = np.random.rand(size_pop1, self.N)
                 pop1 = np.hstack((pop1_first_half, pop1_second_half))
-                fitnes_pop1 = np.array([chromosome_fitness(c,
+                fitnes_pop1 = np.array([chromosome_fitness_n(c,
                                         self.dissimilarity_matrix,
-                                        self.N, self.rank, self.break_point,
-                                        self.K, self.adjacency)  for c in pop1])
+                                        self.N, self.rank, self.break_point, self.K,
+                                        self.adj_offsets, self.adj_neighbors)  for c in pop1])
                 # Part 2 (fully random, evaluated in parallel)
                 size_pop2 = n_parallel
                 pop2 = self.generate_chromosome_array(size_pop2)
@@ -296,34 +319,8 @@ class Greedy_BRKGA_parallel_test:
                 best_fitness = fitness_values.min()
                 generations_without_improvement = 0
 
-                # DELTE THIS LATER
-                if self.verbose:
-                    import matplotlib.pyplot as plt
-                    from Heuristics.brkga_parallel.test_decoder import get_matrix_from_chromosome
-                    plt.imshow(self.dissimilarity_matrix)
-                    plt.colorbar()
-                    plt.savefig(f"./Example_plots/dissimilarity_matrix.png")
-                    plt.close()
-
                 # Main loop (generations 1 - max_generations)
                 for idx in range(1, self.max_generations + 1):
-
-                    # DELETE THIS LATER
-                    if idx % 10 == 1 and self.verbose:
-                        best_idx = np.argmin(fitness_values)
-                        best_fitness = fitness_values[best_idx]
-                        best_chromosome = population[best_idx]
-                        print(np.argsort(best_chromosome[self.break_point:])[:self.K])
-                        matrix_c = get_matrix_from_chromosome(best_chromosome[:self.break_point],
-                                                              self.N, self.rank)
-                        plt.imshow(matrix_c)
-                        plt.colorbar()
-                        plt.savefig(f"./Example_plots/best_matrix_gen_{idx}.png")
-                        plt.close()
-                        plt.imshow(matrix_c * self.dissimilarity_matrix)
-                        plt.colorbar()
-                        plt.savefig(f"./Example_plots/best_matrix_times_dist_gen_{idx}.png")
-                        plt.close()
 
                     # Create offspring and mutants
                     offspring = self.generate_offspring(population)
