@@ -8,7 +8,7 @@ import numpy as np
 def main():   
  
     # Define instance
-    instance_path = "./Instances_Mexico/12.pkl"
+    instance_path = "./Instances_Mexico/20.pkl"
     plots_path = "./Example_plots/"
     os.makedirs(plots_path, exist_ok=True)
     num_regions = 10

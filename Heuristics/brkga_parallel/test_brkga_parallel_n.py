@@ -177,8 +177,8 @@ class Greedy_BRKGA_parallel_test_n:
         """
         _min = fitness_values.min()
         _mean = fitness_values.mean()
-        _std = fitness_values.std()
-        self.print_general_info(f"Generation {idx}: Best fitness = {_min:.6f}. Mean fitness = {_mean:.6f}. Std = {_std:.6f}")
+        _median = np.median(fitness_values)
+        self.print_general_info(f"Generation {idx}: Best fitness = {_min:.6f}. Mean = {_mean:.6f}. Median = {_median:.6f}")
 
     def compute_statistics(self, fitness_values: np.ndarray) -> dict:
         """

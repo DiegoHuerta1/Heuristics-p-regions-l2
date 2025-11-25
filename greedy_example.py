@@ -3,7 +3,6 @@ import igraph
 import os
 import time
 
-
 def main():   
  
     # Define instance
@@ -25,11 +24,11 @@ def main():
     
     # BRKGA parameters
     config = {
-        "population_size": 500,
+        "population_size": 200,
         "elite_fraction": 0.2,
         "mutant_fraction": 0.2,
         "crossover_rate": 0.7,
-        "max_generations": 400,
+        "max_generations": 200,
         "tolerance_generations": 100,
         "max_time": 9000,  
         "seed": seed,
@@ -117,7 +116,7 @@ def main():
     print("Parallel (with shared memory and numba!)\n")
     from Heuristics.brkga_parallel.test_brkga_parallel_n import Greedy_BRKGA_parallel_test_n
     brkga = Greedy_BRKGA_parallel_test_n(graph, num_regions, diss_matrix,
-                                       rank = 1, verbose = False, num_workers = 4,
+                                       rank = 1, verbose = True, num_workers = 4,
                                         **config)
     brkga.run()
     brkga.print_statistics()
@@ -143,6 +142,29 @@ def main():
                                    brkga.adjacency)
     print(f"Fitness of best chromosome: {f_original}")
     print(f"Fitness of chromosome with same seeds: {f_compare}\n")
+
+    # Apply LS
+
+    from Heuristics.utils import l2_objective_function_diss_matrix
+    from Heuristics.LS.old_code import busqueda_local_desde_solucion_inicial
+    P0 = brkga.evolution_stats["best_solution"]
+    f_P0 = l2_objective_function_diss_matrix(P0, diss_matrix)
+
+    print("-"*10)
+    print(f"Applying LS from solution with: {f_P0}")
+    res = busqueda_local_desde_solucion_inicial(graph, P0, diss_matrix)
+
+    P_final = res["P"]
+    f_P_final = l2_objective_function_diss_matrix(P_final, diss_matrix)
+    f_final = res["f_P"]
+    import numpy as np
+    assert np.isclose(f_P_final, f_final)
+    assert res["optimo_local"]
+    time_ls = res["tiempo"]
+    hist = res["historial_f"]
+    print(f"LS executed in {time_ls}")
+    print(f"Total of {len(hist)} iterations")
+    print(f"Final solution: {f_final}")
 
 
 
