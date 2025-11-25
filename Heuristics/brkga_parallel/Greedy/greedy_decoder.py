@@ -1,6 +1,7 @@
 import numpy as np
 import itertools
 
+from ...utils import l2_objective_function_diss_matrix
 
 # --------------------------------------------------------
 # COMPUTE FITNESS 
@@ -12,21 +13,6 @@ def chromosome_fitness(chromosome: np.ndarray,
                 adjacency: dict[int, list[int]]) -> float:
     solution = decode(chromosome, dissimilarity_matrix, N, rank, break_point, K, adjacency)
     return l2_objective_function_diss_matrix(solution, dissimilarity_matrix)
-
-
-def l2_objective_function_diss_matrix(P: dict[int, list[int]],
-                                     diss_matrix: np.ndarray) -> float:
-    # start sum 
-    sum = 0.0 
-    # for each region
-    for P_k in P.values():
-        n_k = len(P_k)
-        # for each pair of nodes in the region
-        node_pairs = itertools.combinations(P_k, 2)
-        for i, j in node_pairs:
-            # add the corresponding term
-            sum += diss_matrix[i, j]/n_k
-    return float(sum)
 
 
 # --------------------------------------------------------

@@ -1,9 +1,9 @@
 import igraph
 import numpy as np
-from ..utils import generate_dissimilarity_matrix
+from ...utils import generate_dissimilarity_matrix
 from functools import partial
 
-from .parallel_processor import ParallelMatrixProcessor
+from ..parallel_processor import ParallelMatrixProcessor
 from multiprocessing import Pool
 
 import time
@@ -11,7 +11,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # DECODER
-from .test_decoder import decode, chromosome_fitness
+from .greedy_decoder import decode, chromosome_fitness
 
 
 # ----------------------------------------------------------------------------------------------
@@ -296,34 +296,8 @@ class Greedy_BRKGA_parallel_test:
                 best_fitness = fitness_values.min()
                 generations_without_improvement = 0
 
-                # DELTE THIS LATER
-                if self.verbose:
-                    import matplotlib.pyplot as plt
-                    from Heuristics.brkga_parallel.test_decoder import get_matrix_from_chromosome
-                    plt.imshow(self.dissimilarity_matrix)
-                    plt.colorbar()
-                    plt.savefig(f"./Example_plots/dissimilarity_matrix.png")
-                    plt.close()
-
                 # Main loop (generations 1 - max_generations)
                 for idx in range(1, self.max_generations + 1):
-
-                    # DELETE THIS LATER
-                    if idx % 10 == 1 and self.verbose:
-                        best_idx = np.argmin(fitness_values)
-                        best_fitness = fitness_values[best_idx]
-                        best_chromosome = population[best_idx]
-                        print(np.argsort(best_chromosome[self.break_point:])[:self.K])
-                        matrix_c = get_matrix_from_chromosome(best_chromosome[:self.break_point],
-                                                              self.N, self.rank)
-                        plt.imshow(matrix_c)
-                        plt.colorbar()
-                        plt.savefig(f"./Example_plots/best_matrix_gen_{idx}.png")
-                        plt.close()
-                        plt.imshow(matrix_c * self.dissimilarity_matrix)
-                        plt.colorbar()
-                        plt.savefig(f"./Example_plots/best_matrix_times_dist_gen_{idx}.png")
-                        plt.close()
 
                     # Create offspring and mutants
                     offspring = self.generate_offspring(population)

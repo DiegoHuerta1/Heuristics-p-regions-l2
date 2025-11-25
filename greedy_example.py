@@ -1,7 +1,9 @@
 from Heuristics.utils import generate_dissimilarity_matrix
 import igraph
 import os
-import time
+
+from Heuristics.brkga_parallel.Greedy.greedy_brkga_parallel_n import Greedy_BRKGA_parallel_test_n
+from Heuristics.brkga_parallel.Greedy.greedy_brkga_parallel import Greedy_BRKGA_parallel_test
 
 def main():   
  
@@ -32,157 +34,31 @@ def main():
         "tolerance_generations": 100,
         "max_time": 9000,  
         "seed": seed,
+        "rank" : 1,
+        "verbose": False,
+        "num_workers": 4,
     }
 
-    # Secuential code (functional version)
-    # print("-"*100)
-    # print("Functional\n")
-    # from Heuristics.brkga_parallel.brkga_functional import Greedy_BRKGA_functional
-    # brkga = Greedy_BRKGA_functional(graph, num_regions, diss_matrix, **config)
-    # brkga.run()
-    # brkga.print_statistics()
-    # brkga.plot_evolution(plots_path + "greedy_func_evolution.png") 
-
     # -----------------------------------------------------------------------
-    # New functional (parallel, + low rank)
-    # print("-"*100)
-    # print("Functional (new)\n")
-    # from Heuristics.brkga_parallel.test_brkga_functional import Greedy_BRKGA_functional_test
-    # brkga = Greedy_BRKGA_functional_test(graph, num_regions, diss_matrix,
-    #                                      rank = 1, verbose = True, **config)
-    # brkga.run()
-    # brkga.print_statistics()
-    # brkga.plot_evolution(plots_path + "greedy_func_test_evolution.png") 
-    # # Compare with a chromosome with the same seeds but constant
-    # from Heuristics.brkga_parallel.test_decoder import chromosome_fitness
-    # best_c = brkga.evolution_stats["best_chromosome"]
-    # best_c_seeds = best_c.copy()
-    # best_c_seeds[:brkga.break_point] = 1 # identity multiplicative
-    # f_original = chromosome_fitness(best_c,
-    #                                brkga.dissimilarity_matrix,
-    #                                brkga.N,
-    #                                brkga.rank,
-    #                                brkga.break_point,
-    #                                brkga.K,
-    #                                brkga.adjacency)
-    # f_compare = chromosome_fitness(best_c_seeds,
-    #                                brkga.dissimilarity_matrix,
-    #                                brkga.N,
-    #                                brkga.rank,
-    #                                brkga.break_point,
-    #                                brkga.K,
-    #                                brkga.adjacency)
-    # print(f"Fitness of best chromosome: {f_original}")
-    # print(f"Fitness of chromosome with same seeds: {f_compare}\n")
-
-
-    # -----------------------------------------------------------------------
-    # Test Parallel (low rank)
-    # print("-"*100)
-    # print("Parallel (with shared memory)\n")
-    # from Heuristics.brkga_parallel.test_brkga_parallel import Greedy_BRKGA_parallel_test
-    # brkga = Greedy_BRKGA_parallel_test(graph, num_regions, diss_matrix,
-    #                                    rank = 1, verbose = False, num_workers = 4,
-    #                                     **config)
-    # brkga.run()
-    # brkga.print_statistics()
-    # brkga.plot_evolution(plots_path + "greedy_func_test_evolution.png") 
-    # # Compare with a chromosome with the same seeds but constant
-    # from Heuristics.brkga_parallel.test_decoder import chromosome_fitness
-    # best_c = brkga.evolution_stats["best_chromosome"]
-    # best_c_seeds = best_c.copy()
-    # best_c_seeds[:brkga.break_point] = 1 # identity multiplicative
-    # f_original = chromosome_fitness(best_c,
-    #                                brkga.dissimilarity_matrix,
-    #                                brkga.N,
-    #                                brkga.rank,
-    #                                brkga.break_point,
-    #                                brkga.K,
-    #                                brkga.adjacency)
-    # f_compare = chromosome_fitness(best_c_seeds,
-    #                                brkga.dissimilarity_matrix,
-    #                                brkga.N,
-    #                                brkga.rank,
-    #                                brkga.break_point,
-    #                                brkga.K,
-    #                                brkga.adjacency)
-    # print(f"Fitness of best chromosome: {f_original}")
-    # print(f"Fitness of chromosome with same seeds: {f_compare}\n")
-
-
-    # -----------------------------------------------------------------------
-    # New Parallel (low rank + numba)
     print("-"*100)
-    print("Parallel (with shared memory and numba!)\n")
-    from Heuristics.brkga_parallel.test_brkga_parallel_n import Greedy_BRKGA_parallel_test_n
-    brkga = Greedy_BRKGA_parallel_test_n(graph, num_regions, diss_matrix,
-                                       rank = 1, verbose = True, num_workers = 4,
-                                        **config)
+    print("Parallel \n")
+    brkga = Greedy_BRKGA_parallel_test(graph, num_regions, diss_matrix, **config)
     brkga.run()
     brkga.print_statistics()
-    brkga.plot_evolution(plots_path + "greedy_func_test_evolution.png") 
-    # Compare with a chromosome with the same seeds but constant
-    from Heuristics.brkga_parallel.test_decoder import chromosome_fitness
-    best_c = brkga.evolution_stats["best_chromosome"]
-    best_c_seeds = best_c.copy()
-    best_c_seeds[:brkga.break_point] = 1 # identity multiplicative
-    f_original = chromosome_fitness(best_c,
-                                   brkga.dissimilarity_matrix,
-                                   brkga.N,
-                                   brkga.rank,
-                                   brkga.break_point,
-                                   brkga.K,
-                                   brkga.adjacency)
-    f_compare = chromosome_fitness(best_c_seeds,
-                                   brkga.dissimilarity_matrix,
-                                   brkga.N,
-                                   brkga.rank,
-                                   brkga.break_point,
-                                   brkga.K,
-                                   brkga.adjacency)
-    print(f"Fitness of best chromosome: {f_original}")
-    print(f"Fitness of chromosome with same seeds: {f_compare}\n")
+    brkga.plot_evolution(plots_path + "greedy_brkga_p_evolution.png") 
 
-    # Apply LS
-
-    from Heuristics.utils import l2_objective_function_diss_matrix
-    from Heuristics.LS.old_code import busqueda_local_desde_solucion_inicial
-    P0 = brkga.evolution_stats["best_solution"]
-    f_P0 = l2_objective_function_diss_matrix(P0, diss_matrix)
-
-    print("-"*10)
-    print(f"Applying LS from solution with: {f_P0}")
-    res = busqueda_local_desde_solucion_inicial(graph, P0, diss_matrix)
-
-    P_final = res["P"]
-    f_P_final = l2_objective_function_diss_matrix(P_final, diss_matrix)
-    f_final = res["f_P"]
-    import numpy as np
-    assert np.isclose(f_P_final, f_final)
-    assert res["optimo_local"]
-    time_ls = res["tiempo"]
-    hist = res["historial_f"]
-    print(f"LS executed in {time_ls}")
-    print(f"Total of {len(hist)} iterations")
-    print(f"Final solution: {f_final}")
-
+    # -----------------------------------------------------------------------
+    print("\n")
+    print("-"*100)
+    print("Parallel with Numba \n")
+    brkga = Greedy_BRKGA_parallel_test_n(graph, num_regions, diss_matrix, **config)
+    brkga.run()
+    brkga.print_statistics()
+    brkga.plot_evolution(plots_path + "greedy_brkga_p_numba_evolution.png") 
+    brkga.compare_null_weights()
+    brkga.ls_best_solution(graph)
 
 
 if __name__ == "__main__":
-    from cProfile import Profile
-    from pstats import SortKey, Stats
-        
-    with Profile() as profile:
-        main()
-    
-    # get the profile stats
-    stats = Stats(profile)
-    # remove extraneous paths
-    stats.strip_dirs() 
-    # sort by cummulative time (or by: SortKey.TIME, SortKey.CALLS)
-    stats.sort_stats(SortKey.CUMULATIVE) 
-    # filter stats (only top 10)
-    # print("-"*100)
-    # print(" ")
-    # stats.print_stats(10)
+    main()
     

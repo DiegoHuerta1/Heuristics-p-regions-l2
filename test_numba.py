@@ -8,7 +8,7 @@ import numpy as np
 def main():   
  
     # Define instance
-    instance_path = "./Instances_Mexico/20.pkl"
+    instance_path = "./Instances_Mexico/12.pkl"
     plots_path = "./Example_plots/"
     os.makedirs(plots_path, exist_ok=True)
     num_regions = 10
@@ -37,19 +37,19 @@ def main():
     }
 
     # Load both classes
-    from Heuristics.brkga_parallel.test_brkga_parallel import Greedy_BRKGA_parallel_test
+    from Heuristics.brkga_parallel.Greedy.greedy_brkga_parallel import Greedy_BRKGA_parallel_test
     brkga = Greedy_BRKGA_parallel_test(graph, num_regions, diss_matrix,
                                         rank = 1, verbose = False, num_workers = 4,
                                         **config)
-    from Heuristics.brkga_parallel.test_brkga_parallel_n import Greedy_BRKGA_parallel_test_n
+    from Heuristics.brkga_parallel.Greedy.greedy_brkga_parallel_n import Greedy_BRKGA_parallel_test_n
     brkga_n = Greedy_BRKGA_parallel_test_n(graph, num_regions, diss_matrix,
                                          rank = 1, verbose = False, num_workers = 4,
                                          **config)
-    num = 1000
+    num = 10000
     X = brkga.generate_chromosome_array(num)
 
     # OLD Implementation (no numba)
-    from Heuristics.brkga_parallel.test_decoder import l2_objective_function_diss_matrix, decode
+    from Heuristics.brkga_parallel.Greedy.greedy_decoder import l2_objective_function_diss_matrix, decode
     costs_old = []
     start_time = time.time()
     for c in X:
@@ -62,7 +62,7 @@ def main():
     print(f"Old implementation, time: {total_time}")
 
     # NEW Implementation (numba)
-    from Heuristics.brkga_parallel.test_decoder_n import l2_objective_array_version, decode_n
+    from Heuristics.brkga_parallel.Greedy.greedy_decoder_n import l2_objective_array_version, decode_n
     costs_new = []
     # warm up
     start_time = time.time()

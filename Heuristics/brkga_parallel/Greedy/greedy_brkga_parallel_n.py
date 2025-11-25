@@ -1,9 +1,9 @@
 import igraph
 import numpy as np
-from ..utils import generate_dissimilarity_matrix
+from ...utils import generate_dissimilarity_matrix
 from functools import partial
 
-from .parallel_processor import ParallelMatrixProcessor
+from ..parallel_processor import ParallelMatrixProcessor
 from multiprocessing import Pool
 
 import time
@@ -11,49 +11,70 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # DECODER
-from .greedy_decoder import decode, chromosome_fitness
+from .greedy_decoder_n import chromosome_fitness_n, decode_P_dict_format
 
 
 # ----------------------------------------------------------------------------------------------
 
-# Variable global que existirá DENTRO de cada worker
-_WORKER_ADJACENCY = None
+_WORKER_ADJ_OFFSETS = None
+_WORKER_ADJ_NEIG = None
 
-def _init_worker_adjacency(adj_dict: dict):
+
+def build_adjacency_arrays(adjacency_dict, N):
     """
-    Esta función es llamada una vez por worker.
-    Guarda el diccionario de adyacencia en su scope global.
+    Transforms the adj dict into adj arrays
+    Returns: (offsets, neighbors)
     """
-    global _WORKER_ADJACENCY
-    _WORKER_ADJACENCY = adj_dict
+    offsets = np.zeros(N + 1, dtype=np.int32)
+    neighbors = []
+    
+    current_offset = 0
+    for i in range(N):
+        offsets[i] = current_offset
+        neigs = adjacency_dict.get(i, [])
+        neighbors.extend(neigs)
+        current_offset += len(neigs)
+    offsets[N] = current_offset
+    
+    return offsets, np.array(neighbors, dtype=np.int32)
+
+
+def _init_worker_adjacency(offsets: np.ndarray, neighbors: np.ndarray):
+    """
+    Store the adj arrays in global scope
+    """
+    global _WORKER_ADJ_OFFSETS
+    global _WORKER_ADJ_NEIG
+    _WORKER_ADJ_OFFSETS = offsets
+    _WORKER_ADJ_NEIG = neighbors
+
 
 def chromosome_fitness_wrapper(chromosome: np.ndarray, 
                                dissimilarity_matrix: np.ndarray,
-                               N: int, num_pairs: int,
+                               N: int, rank: int, break_point: int,
                                K: int) -> float:
     """
-    Un wrapper que llama a la función real, pero
-    toma 'adjacency' de la variable global del worker.
+    Wrapper to call the real function using the global adj arrays
     """
-    # Llama a tu 'chromosome_fitness' original,
-    # pero le pasa el diccionario global
-    return chromosome_fitness(chromosome, dissimilarity_matrix,
-                              N, num_pairs, K,
-                              _WORKER_ADJACENCY) # type: ignore
+    return chromosome_fitness_n(chromosome, dissimilarity_matrix,
+                              N, rank, break_point,  K,
+                              _WORKER_ADJ_OFFSETS, _WORKER_ADJ_NEIG) # type: ignore
 
 
 # ----------------------------------------------------------------------------------------------
-class Greedy_BRKGA_parallel:
+class Greedy_BRKGA_parallel_test_n:
 
     def __init__(self, adj_graph_or_dict: igraph.Graph | dict,
                  num_regions: int,
-                 dissimilarity_matrix: np.ndarray | None = None, **kwargs):
+                 dissimilarity_matrix: np.ndarray | None = None,
+                 rank: int = 1, **kwargs):
         
         # Define main attributes
         self.N: int  # number of nodes
         self.n: int  # chromosome length
         self.adjacency: dict[int, list[int]]
         self.dissimilarity_matrix: np.ndarray
+        self.K: int = num_regions
 
         # Set the adjacency and dissimilarity matrix
         if isinstance(adj_graph_or_dict, igraph.Graph):
@@ -66,10 +87,13 @@ class Greedy_BRKGA_parallel:
             assert dissimilarity_matrix is not None, "If adjacency dict is provided, dissimilarity matrix must be provided too."
             self.dissimilarity_matrix = dissimilarity_matrix
 
-        # Set attributes
-        self.num_pairs = self.N*(self.N - 1)//2   
-        self.n = self.num_pairs + self.N  
-        self.K = num_regions
+        # Transform adjacency dict to arrays
+        self.adj_offsets, self.adj_neighbors = build_adjacency_arrays(self.adjacency, self.N)
+
+        # set length of chromosomes
+        self.rank = rank
+        self.break_point = self.rank * self.N
+        self.n = self.break_point + self.N  
    
         # GET BRKGA PARAMETERS FROM KWARGS
         population_size = kwargs.get("population_size", 200)
@@ -99,9 +123,20 @@ class Greedy_BRKGA_parallel:
         self.seed = kwargs.get("seed", None)
         self.num_workers =  kwargs.get("num_workers", 5) 
         self.verbose = kwargs.get("verbose", False)
+
+        self.print_general_info(f"Population of size: {self.p}")
+        self.print_general_info(f"Chromosome of length: {self.n}")
     
     # ------------------------------------------
     # UTILITY METHODS FOR THE BRKGA
+
+    def generate_custom_vectors(self, number_of_chromosomes: int) -> np.ndarray:
+        """ 
+        Generate an array of chromosomes with custom initialization (not uniform)
+        This vectors do not represent the full chromosome,
+        only the first part (length of break_point).
+        """
+        return np.ones((number_of_chromosomes, self.break_point))
 
     def generate_chromosome_array(self, number_of_chromosomes: int)-> np.ndarray:
         return np.random.rand(number_of_chromosomes, self.n)
@@ -122,6 +157,7 @@ class Greedy_BRKGA_parallel:
     
     def sort_population(self, population: np.ndarray,
                         fitness_values: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        fitness_values = fitness_values.round(decimals=8)
         sorted_indices = np.argsort(fitness_values)
         population = population[sorted_indices]
         fitness_values = fitness_values[sorted_indices]
@@ -140,8 +176,8 @@ class Greedy_BRKGA_parallel:
         """
         _min = fitness_values.min()
         _mean = fitness_values.mean()
-        _std = fitness_values.std()
-        self.print_general_info(f"Generation {idx}: Best fitness = {_min:.6f}. Mean fitness = {_mean:.6f}. Std = {_std:.6f}")
+        _median = np.median(fitness_values)
+        self.print_general_info(f"Generation {idx}: Best fitness = {_min:.6f}. Mean = {_mean:.6f}. Median = {_median:.6f}")
 
     def compute_statistics(self, fitness_values: np.ndarray) -> dict:
         """
@@ -158,7 +194,143 @@ class Greedy_BRKGA_parallel:
             "q90": np.quantile(fitness_values, 0.90),
             "elite_cutoff": np.quantile(fitness_values, self.p_e/self.p) # elite quantile
         }
-    
+
+    # ------------------------
+    # Evolution
+
+    def run(self):
+        """
+        Main method to evolve a population of chromosomes
+
+        Saves a dictionary of results in self.evolution_stats
+        This is a dictionary with the results:
+            - best_chromosome: Best chromosome found
+            - best_solution: Best solution found (decoded chromosome)
+            - best_fitness: Fitness of the best solution
+            - population_stats: Population statistics over generations
+            - time: Execution time
+        """
+        population_statistics = []
+        
+        # set random seed and start time
+        if self.seed is not None:
+            np.random.seed(self.seed)
+        start_time = time.time()
+
+        # Initialize pool of parallel workers
+        self.print_general_info("Preparing pool...")
+        n_parallel = self.p - self.p_e
+        chunk_size=  int(np.ceil(n_parallel / self.num_workers))
+        with Pool(processes = self.num_workers,
+                  initializer = _init_worker_adjacency, 
+                  initargs= (self.adj_offsets, self.adj_neighbors)) as pool: 
+            processor = None 
+            self.print_general_info("Pool created :)")
+            self.print_general_info(f"Evolution with {self.num_workers} processors. Chunks of size {chunk_size}")
+
+            try:
+                # Function to evaluate in each chromosome
+                F_func = partial(chromosome_fitness_wrapper,
+                                N = self.N, rank = self.rank, break_point = self.break_point,
+                                K= self.K)
+                
+                # Initialize population (generation 0)
+
+                # Part 1 (custom first half of chromosome, evaluated secuentially)
+                size_pop1 = self.p_e
+                pop1_first_half = self.generate_custom_vectors(size_pop1)
+                pop1_second_half = np.random.rand(size_pop1, self.N)
+                pop1 = np.hstack((pop1_first_half, pop1_second_half))
+                fitnes_pop1 = np.array([chromosome_fitness_n(c,
+                                        self.dissimilarity_matrix,
+                                        self.N, self.rank, self.break_point, self.K,
+                                        self.adj_offsets, self.adj_neighbors)  for c in pop1])
+                # Part 2 (fully random, evaluated in parallel)
+                size_pop2 = n_parallel
+                pop2 = self.generate_chromosome_array(size_pop2)
+                processor = ParallelMatrixProcessor(pop2 ,
+                                                    self.dissimilarity_matrix,
+                                                    func= F_func, 
+                                                    pool=pool,
+                                                    chunk_size=chunk_size)
+                fitnes_pop2 = processor.execute()
+                # Merge
+                population = np.vstack((pop1, pop2))
+                fitness_values = np.concatenate((fitnes_pop1, fitnes_pop2))
+
+                # Sort population and save statistics
+                population, fitness_values = self.sort_population(population, fitness_values)
+                population_statistics.append(self.compute_statistics(fitness_values))
+                self.print_generation_info(fitness_values, 0)
+
+                # Control the generation loop 
+                best_fitness = fitness_values.min()
+                generations_without_improvement = 0
+
+                # Main loop (generations 1 - max_generations)
+                for idx in range(1, self.max_generations + 1):
+
+                    # Create offspring and mutants
+                    offspring = self.generate_offspring(population)
+                    mutants = self.generate_chromosome_array(self.p_m)
+                    new_individuals = np.vstack((offspring, mutants))
+                    # Compute fitness of new individuals
+                    processor.replace_A(new_individuals)
+                    new_fitness = processor.execute()
+
+                    # Update population
+                    population = np.vstack((population[:self.p_e], new_individuals))
+                    fitness_values = np.concatenate((fitness_values[:self.p_e], new_fitness))
+
+                    # Sort population and save statistics
+                    population, fitness_values = self.sort_population(population, fitness_values)
+                    population_statistics.append(self.compute_statistics(fitness_values))
+                    self.print_generation_info(fitness_values, idx)
+
+                    # Evaluate the tolerance condition 
+                    current_best_fitness = np.min(fitness_values)
+                    if current_best_fitness + 1e-4 < best_fitness: # improvement!
+                        generations_without_improvement = 0
+                        best_fitness = current_best_fitness
+                    else:                                          # no improvement :(
+                        generations_without_improvement += 1
+                    if generations_without_improvement >= self.tolerance_generations:
+                        break
+
+                    # Evaluate the time condition
+                    elapsed_time = time.time() - start_time
+                    if elapsed_time >= self.max_time:
+                        break
+            
+                # Get best solution
+                best_idx = np.argmin(fitness_values)
+                best_fitness = fitness_values[best_idx]
+                best_chromosome = population[best_idx]
+                best_solution = decode_P_dict_format(best_chromosome,
+                                                    self.dissimilarity_matrix,
+                                                    self.N,
+                                                    self.rank,
+                                                    self.break_point,
+                                                    self.K,
+                                                    self.adj_offsets,
+                                                    self.adj_neighbors)
+                # Store evolution statistics
+                self.evolution_stats = {
+                    "best_chromosome": best_chromosome,
+                    "best_solution": best_solution,
+                    "best_fitness": float(best_fitness),
+                    "population_stats": pd.DataFrame(population_statistics),
+                    "time": time.time() - start_time
+                }
+
+            # Clearn shared memory
+            finally:
+                if processor:
+                        processor.cleanup()
+
+    # --------------------------------------------------------------------
+    # Post run methods
+
     def print_statistics(self):
         """
         Print the statistics of the evolution
@@ -210,131 +382,59 @@ class Greedy_BRKGA_parallel:
             plt.show()
         plt.close()
 
-    # ------------------------
-    # Evolution
-
-    def run(self):
+    def compare_null_weights(self):
+        """  
+        After evolution, evaluate the quality of the best chromosome
+        against a chromosome with the same seeds,
+        but without modifying the dissimilarity matrix
         """
-        Main method to evolve a population of chromosomes
+        if not self.evolution_stats:
+            return 
 
-        Saves a dictionary of results in self.evolution_stats
-        This is a dictionary with the results:
-            - best_chromosome: Best chromosome found
-            - best_solution: Best solution found (decoded chromosome)
-            - best_fitness: Fitness of the best solution
-            - population_stats: Population statistics over generations
-            - time: Execution time
-        """
-        population_statistics = []
+        # Best solution
+        c = self.evolution_stats["best_chromosome"]
+        f = self.evolution_stats["best_fitness"]
+        # Only seeds
+        c_prime = c.copy()
+        c_prime[:self.break_point] = 1 # see generate_custom_vectors
+        f_prime = chromosome_fitness_n(c_prime, self.dissimilarity_matrix,
+                                       self.N, self.rank, self.break_point,
+                                       self.K, self.adj_offsets, self.adj_neighbors)
+        if self.verbose:
+            print("-"*20)
+            print(f"Best solution found: {np.round(f, 4)}")
+            print(f"Considering null weights: {np.round(f_prime, 4)}")
         
-        # set random seed and start time
-        if self.seed is not None:
-            np.random.seed(self.seed)
-        start_time = time.time()
+        return f_prime
+    
+    def ls_best_solution(self, graph):
+        """ 
+        Apply LS to the best solution found during evolution
+        """
+        from Heuristics.utils import l2_objective_function_diss_matrix
+        from Heuristics.LS.old_code import busqueda_local_desde_solucion_inicial
 
-        # Initialize pool of parallel workers
-        self.print_general_info("Preparing pool...")
-        n_parallel = self.p - self.p_e
-        chunk_size=  int(np.ceil(n_parallel / self.num_workers))
-        with Pool(processes = self.num_workers,
-                  initializer = _init_worker_adjacency, 
-                  initargs= (self.adjacency,)) as pool: 
-            processor = None 
-            self.print_general_info("Pool created :)")
-            self.print_general_info(f"Evolution with {self.num_workers} processors. Chunks of size {chunk_size}")
+        P_0 = self.evolution_stats["best_solution"]
+        f_P0 = l2_objective_function_diss_matrix(P_0, self.dissimilarity_matrix)
+        if self.verbose:
+            print("-"*10)
+            print(f"Applying LS from solution with: {f_P0}")
+        # Apply LS
+        result = busqueda_local_desde_solucion_inicial(graph, P_0, self.dissimilarity_matrix)
+        P_LS = result["P"]
+        f_LS = l2_objective_function_diss_matrix(P_LS, self.dissimilarity_matrix)
+        assert np.isclose(result["f_P"], f_LS)
+        assert result["optimo_local"]
+        time_ls = result["tiempo"]
+        iter_ls = len(result["historial_f"])
+        # Report
+        if self.verbose:
+            print(f"LS executed in {np.round(time_ls, 4)} seconds")
+            print(f"Total of {iter_ls} iterations")
+            print(f"Final solution: {f_LS}")
 
-            try:
-                # Initialize population (generation 0)
-                population = self.generate_chromosome_array(self.p)
-                # Function to evaluate in each chromosome
-                F_func = partial(chromosome_fitness_wrapper,
-                                N = self.N, num_pairs = self.num_pairs,
-                                K= self.K)
-                # Two groups for initial population (always same num of parallel)
-                parallel_population = population[:n_parallel]
-                sequential_population = population[n_parallel:]
-                # Process the parallel group
-                processor = ParallelMatrixProcessor(parallel_population,
-                                                    self.dissimilarity_matrix,
-                                                    func= F_func, 
-                                                    pool=pool,
-                                                    chunk_size=chunk_size)
-                fitness_parallel = processor.execute()
-                # Process the sequential group and merge
-                fitness_sequential = np.array([chromosome_fitness(ch,
-                                                self.dissimilarity_matrix,
-                                                self.N, self.num_pairs, self.K,
-                                                self.adjacency)  for ch in sequential_population])
-                fitness_values = np.concatenate((fitness_parallel, fitness_sequential))
+        return time_ls, iter_ls, f_LS
 
-                # Sort population and save statistics
-                population, fitness_values = self.sort_population(population, fitness_values)
-                population_statistics.append(self.compute_statistics(fitness_values))
-                self.print_generation_info(fitness_values, 0)
-
-                # Control the generation loop 
-                best_fitness = fitness_values.min()
-                generations_without_improvement = 0
-
-                # Main loop (generations 1 - max_generations)
-                for idx in range(1, self.max_generations + 1):
-
-                    # Create offspring and mutants
-                    offspring = self.generate_offspring(population)
-                    mutants = self.generate_chromosome_array(self.p_m)
-                    new_individuals = np.vstack((offspring, mutants))
-                    # Compute fitness of new individuals
-                    processor.replace_A(new_individuals)
-                    new_fitness = processor.execute()
-
-                    # Update population
-                    population = np.vstack((population[:self.p_e], new_individuals))
-                    fitness_values = np.concatenate((fitness_values[:self.p_e], new_fitness))
-
-                    # Sort population and save statistics
-                    population, fitness_values = self.sort_population(population, fitness_values)
-                    population_statistics.append(self.compute_statistics(fitness_values))
-                    self.print_generation_info(fitness_values, idx)
-
-                    # Evaluate the tolerance condition 
-                    current_best_fitness = np.min(fitness_values)
-                    if current_best_fitness + 1e-4 < best_fitness: # improvement!
-                        generations_without_improvement = 0
-                        best_fitness = current_best_fitness
-                    else:                                          # no improvement :(
-                        generations_without_improvement += 1
-                    if generations_without_improvement >= self.tolerance_generations:
-                        break
-
-                    # Evaluate the time condition
-                    elapsed_time = time.time() - start_time
-                    if elapsed_time >= self.max_time:
-                        break
-            
-                # Get best solution
-                best_idx = np.argmin(fitness_values)
-                best_fitness = fitness_values[best_idx]
-                best_chromosome = population[best_idx]
-                best_solution = decode(best_chromosome,
-                                    self.dissimilarity_matrix,
-                                        self.N,
-                                        self.num_pairs,
-                                        self.K,
-                                        self.adjacency)
-                # Store evolution statistics
-                self.evolution_stats = {
-                    "best_chromosome": best_chromosome,
-                    "best_solution": best_solution,
-                    "best_fitness": float(best_fitness),
-                    "population_stats": pd.DataFrame(population_statistics),
-                    "time": time.time() - start_time
-                }
-
-            # Clearn shared memory
-            finally:
-                if processor:
-                        processor.cleanup()
-
-
+        
 
 

@@ -1,14 +1,14 @@
 
 import igraph
 import numpy as np
-from ..utils import generate_dissimilarity_matrix
+from ...utils import generate_dissimilarity_matrix
 
 import time
 import pandas as pd
 import matplotlib.pyplot as plt
 
 # DECODER
-from .greedy_decoder import decode, chromosome_fitness
+from .old_greedy_decoder import decode, chromosome_fitness
 
 
 # ----------------------------------------------------------------------------------------------

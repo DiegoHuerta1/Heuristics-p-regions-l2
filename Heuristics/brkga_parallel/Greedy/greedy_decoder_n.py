@@ -178,6 +178,25 @@ def sum_dissimilarities(v: int, k: int,
             sum_diss += dist
     return sum_diss
 
+# ----------------------------------------------------------------------
+
+# Decode in old format
+
+def get_P_from_array(partition: np.ndarray, K: int) -> dict[int, list[int]]:
+    """  
+    Go from the array representation to the array representation
+    """
+    P = {idx: [] for idx in range(1, K+1)}
+    for v, k in enumerate(partition):
+        P[k+1].append(v)
+    return P
 
 
+def decode_P_dict_format(chromosome: np.ndarray, 
+                        diss_matrix: np.ndarray,
+                        N: int, rank: int, break_point: int,
+                        K: int,
+                        adj_offsets: np.ndarray, adj_neighbors: np.ndarray):
+    sol = decode_n(chromosome, diss_matrix, N, rank, break_point, K, adj_offsets, adj_neighbors)
+    return get_P_from_array(sol[0], K)
 

@@ -7,7 +7,7 @@ import os
 def main():   
  
     # Define instance
-    instance_path = "./Instances_Mexico/07.pkl"
+    instance_path = "./Instances_Mexico/17.pkl"
     plots_path = "./Example_plots/"
     os.makedirs(plots_path, exist_ok=True)
     num_regions = 10
@@ -29,7 +29,7 @@ def main():
         "elite_fraction": 0.2,
         "mutant_fraction": 0.2,
         "crossover_rate": 0.7,
-        "max_generations": 100,
+        "max_generations": 20,
         "tolerance_generations": 328,
         "max_time": 9000,  
         "seed": seed

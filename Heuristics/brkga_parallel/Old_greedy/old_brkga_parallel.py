@@ -1,9 +1,9 @@
 import igraph
 import numpy as np
-from ..utils import generate_dissimilarity_matrix
+from ...utils import generate_dissimilarity_matrix
 from functools import partial
 
-from .parallel_processor import ParallelMatrixProcessor
+from ..parallel_processor import ParallelMatrixProcessor
 from multiprocessing import Pool
 
 import time
@@ -11,71 +11,49 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # DECODER
-from .test_decoder_n import chromosome_fitness_n
-from .test_decoder import decode # just for the final part
+from ...brkga_core import decode, chromosome_fitness
 
 
 # ----------------------------------------------------------------------------------------------
 
-_WORKER_ADJ_OFFSETS = None
-_WORKER_ADJ_NEIG = None
+# Variable global que existirá DENTRO de cada worker
+_WORKER_ADJACENCY = None
 
-
-def build_adjacency_arrays(adjacency_dict, N):
+def _init_worker_adjacency(adj_dict: dict):
     """
-    Transforms the adj dict into adj arrays
-    Returns: (offsets, neighbors)
+    Esta función es llamada una vez por worker.
+    Guarda el diccionario de adyacencia en su scope global.
     """
-    offsets = np.zeros(N + 1, dtype=np.int32)
-    neighbors = []
-    
-    current_offset = 0
-    for i in range(N):
-        offsets[i] = current_offset
-        neigs = adjacency_dict.get(i, [])
-        neighbors.extend(neigs)
-        current_offset += len(neigs)
-    offsets[N] = current_offset
-    
-    return offsets, np.array(neighbors, dtype=np.int32)
-
-
-def _init_worker_adjacency(offsets: np.ndarray, neighbors: np.ndarray):
-    """
-    Store the adj arrays in global scope
-    """
-    global _WORKER_ADJ_OFFSETS
-    global _WORKER_ADJ_NEIG
-    _WORKER_ADJ_OFFSETS = offsets
-    _WORKER_ADJ_NEIG = neighbors
-
+    global _WORKER_ADJACENCY
+    _WORKER_ADJACENCY = adj_dict
 
 def chromosome_fitness_wrapper(chromosome: np.ndarray, 
                                dissimilarity_matrix: np.ndarray,
-                               N: int, rank: int, break_point: int,
+                               N: int, num_pairs: int,
                                K: int) -> float:
     """
-    Wrapper to call the real function using the global adj arrays
+    Un wrapper que llama a la función real, pero
+    toma 'adjacency' de la variable global del worker.
     """
-    return chromosome_fitness_n(chromosome, dissimilarity_matrix,
-                              N, rank, break_point,  K,
-                              _WORKER_ADJ_OFFSETS, _WORKER_ADJ_NEIG) # type: ignore
+    # Llama a tu 'chromosome_fitness' original,
+    # pero le pasa el diccionario global
+    return chromosome_fitness(chromosome, dissimilarity_matrix,
+                              N, num_pairs, K,
+                              _WORKER_ADJACENCY) # type: ignore
 
 
 # ----------------------------------------------------------------------------------------------
-class Greedy_BRKGA_parallel_test_n:
+class Greedy_BRKGA_parallel:
 
     def __init__(self, adj_graph_or_dict: igraph.Graph | dict,
                  num_regions: int,
-                 dissimilarity_matrix: np.ndarray | None = None,
-                 rank: int = 1, **kwargs):
+                 dissimilarity_matrix: np.ndarray | None = None, **kwargs):
         
         # Define main attributes
         self.N: int  # number of nodes
         self.n: int  # chromosome length
         self.adjacency: dict[int, list[int]]
         self.dissimilarity_matrix: np.ndarray
-        self.K: int = num_regions
 
         # Set the adjacency and dissimilarity matrix
         if isinstance(adj_graph_or_dict, igraph.Graph):
@@ -88,13 +66,10 @@ class Greedy_BRKGA_parallel_test_n:
             assert dissimilarity_matrix is not None, "If adjacency dict is provided, dissimilarity matrix must be provided too."
             self.dissimilarity_matrix = dissimilarity_matrix
 
-        # Transform adjacency dict to arrays
-        self.adj_offsets, self.adj_neighbors = build_adjacency_arrays(self.adjacency, self.N)
-
-        # set length of chromosomes
-        self.rank = rank
-        self.break_point = self.rank * self.N
-        self.n = self.break_point + self.N  
+        # Set attributes
+        self.num_pairs = self.N*(self.N - 1)//2   
+        self.n = self.num_pairs + self.N  
+        self.K = num_regions
    
         # GET BRKGA PARAMETERS FROM KWARGS
         population_size = kwargs.get("population_size", 200)
@@ -124,20 +99,9 @@ class Greedy_BRKGA_parallel_test_n:
         self.seed = kwargs.get("seed", None)
         self.num_workers =  kwargs.get("num_workers", 5) 
         self.verbose = kwargs.get("verbose", False)
-
-        self.print_general_info(f"Population of size: {self.p}")
-        self.print_general_info(f"Chromosome of length: {self.n}")
     
     # ------------------------------------------
     # UTILITY METHODS FOR THE BRKGA
-
-    def generate_custom_vectors(self, number_of_chromosomes: int) -> np.ndarray:
-        """ 
-        Generate an array of chromosomes with custom initialization (not uniform)
-        This vectors do not represent the full chromosome,
-        only the first part (length of break_point).
-        """
-        return np.ones((number_of_chromosomes, self.break_point))
 
     def generate_chromosome_array(self, number_of_chromosomes: int)-> np.ndarray:
         return np.random.rand(number_of_chromosomes, self.n)
@@ -158,7 +122,6 @@ class Greedy_BRKGA_parallel_test_n:
     
     def sort_population(self, population: np.ndarray,
                         fitness_values: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        fitness_values = fitness_values.round(decimals=8)
         sorted_indices = np.argsort(fitness_values)
         population = population[sorted_indices]
         fitness_values = fitness_values[sorted_indices]
@@ -177,8 +140,8 @@ class Greedy_BRKGA_parallel_test_n:
         """
         _min = fitness_values.min()
         _mean = fitness_values.mean()
-        _median = np.median(fitness_values)
-        self.print_general_info(f"Generation {idx}: Best fitness = {_min:.6f}. Mean = {_mean:.6f}. Median = {_median:.6f}")
+        _std = fitness_values.std()
+        self.print_general_info(f"Generation {idx}: Best fitness = {_min:.6f}. Mean fitness = {_mean:.6f}. Std = {_std:.6f}")
 
     def compute_statistics(self, fitness_values: np.ndarray) -> dict:
         """
@@ -275,40 +238,34 @@ class Greedy_BRKGA_parallel_test_n:
         chunk_size=  int(np.ceil(n_parallel / self.num_workers))
         with Pool(processes = self.num_workers,
                   initializer = _init_worker_adjacency, 
-                  initargs= (self.adj_offsets, self.adj_neighbors)) as pool: 
+                  initargs= (self.adjacency,)) as pool: 
             processor = None 
             self.print_general_info("Pool created :)")
             self.print_general_info(f"Evolution with {self.num_workers} processors. Chunks of size {chunk_size}")
 
             try:
+                # Initialize population (generation 0)
+                population = self.generate_chromosome_array(self.p)
                 # Function to evaluate in each chromosome
                 F_func = partial(chromosome_fitness_wrapper,
-                                N = self.N, rank = self.rank, break_point = self.break_point,
+                                N = self.N, num_pairs = self.num_pairs,
                                 K= self.K)
-                
-                # Initialize population (generation 0)
-
-                # Part 1 (custom first half of chromosome, evaluated secuentially)
-                size_pop1 = self.p_e
-                pop1_first_half = self.generate_custom_vectors(size_pop1)
-                pop1_second_half = np.random.rand(size_pop1, self.N)
-                pop1 = np.hstack((pop1_first_half, pop1_second_half))
-                fitnes_pop1 = np.array([chromosome_fitness_n(c,
-                                        self.dissimilarity_matrix,
-                                        self.N, self.rank, self.break_point, self.K,
-                                        self.adj_offsets, self.adj_neighbors)  for c in pop1])
-                # Part 2 (fully random, evaluated in parallel)
-                size_pop2 = n_parallel
-                pop2 = self.generate_chromosome_array(size_pop2)
-                processor = ParallelMatrixProcessor(pop2 ,
+                # Two groups for initial population (always same num of parallel)
+                parallel_population = population[:n_parallel]
+                sequential_population = population[n_parallel:]
+                # Process the parallel group
+                processor = ParallelMatrixProcessor(parallel_population,
                                                     self.dissimilarity_matrix,
                                                     func= F_func, 
                                                     pool=pool,
                                                     chunk_size=chunk_size)
-                fitnes_pop2 = processor.execute()
-                # Merge
-                population = np.vstack((pop1, pop2))
-                fitness_values = np.concatenate((fitnes_pop1, fitnes_pop2))
+                fitness_parallel = processor.execute()
+                # Process the sequential group and merge
+                fitness_sequential = np.array([chromosome_fitness(ch,
+                                                self.dissimilarity_matrix,
+                                                self.N, self.num_pairs, self.K,
+                                                self.adjacency)  for ch in sequential_population])
+                fitness_values = np.concatenate((fitness_parallel, fitness_sequential))
 
                 # Sort population and save statistics
                 population, fitness_values = self.sort_population(population, fitness_values)
@@ -359,10 +316,9 @@ class Greedy_BRKGA_parallel_test_n:
                 best_fitness = fitness_values[best_idx]
                 best_chromosome = population[best_idx]
                 best_solution = decode(best_chromosome,
-                                        self.dissimilarity_matrix,
+                                    self.dissimilarity_matrix,
                                         self.N,
-                                        self.rank,
-                                        self.break_point,
+                                        self.num_pairs,
                                         self.K,
                                         self.adjacency)
                 # Store evolution statistics
