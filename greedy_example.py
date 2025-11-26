@@ -35,17 +35,17 @@ def main():
         "max_time": 9000,  
         "seed": seed,
         "rank" : 1,
-        "verbose": False,
+        "verbose": True,
         "num_workers": 4,
     }
 
     # -----------------------------------------------------------------------
     print("-"*100)
     print("Parallel \n")
-    brkga = Greedy_BRKGA_parallel_test(graph, num_regions, diss_matrix, **config)
-    brkga.run()
-    brkga.print_statistics()
-    brkga.plot_evolution(plots_path + "greedy_brkga_p_evolution.png") 
+    #brkga = Greedy_BRKGA_parallel_test(graph, num_regions, diss_matrix, **config)
+    #brkga.run()
+    #brkga.print_statistics()
+    #brkga.plot_evolution(plots_path + "greedy_brkga_p_evolution.png") 
 
     # -----------------------------------------------------------------------
     print("\n")
