@@ -43,7 +43,8 @@ def greedy_decoder(chromosome: np.ndarray, diss_matrix: np.ndarray,
     # Fill with initial feasible: {(v, k) | (∄h ∈ [K] : v ∈ Ph) ∧ (∃u ∈ N(v) : u ∈ Pk)}
     for u in seed_nodes:
         k = partition[u]
-        for v in get_neighbors(adj_offsets, adj_neighbors, u):
+        for idx in range(adj_offsets[u], adj_offsets[u + 1]):
+            v = adj_neighbors[idx]
             if not assigned_mask[v]:
                 cost = get_lazy_dist(v, u, M, rank, diss_matrix)/2 # this is trivial
                 feasible_elements_g[v, k] = cost
@@ -87,7 +88,8 @@ def greedy_decoder(chromosome: np.ndarray, diss_matrix: np.ndarray,
 
         # Get new feasible elements and their evaluations
         # {(v, k∗) : (v ∈ N (v∗)) ∧ (∄h ∈ [K] : v ∈ Ph) ∧ ((v, k∗) /∈ F)}
-        for v in get_neighbors(adj_offsets, adj_neighbors, v_star):
+        for idx in range(adj_offsets[v_star], adj_offsets[v_star + 1]):
+            v = adj_neighbors[idx]
             if not assigned_mask[v] and np.isinf(feasible_elements_g[v, k_star]):
                 sum_diss = sum_dissimilarities(v, k_star, M, rank, diss_matrix, partition, N)
                 cost = 1/(n_k[k_star] + 1) * (sum_diss - R_k[k_star])
@@ -107,12 +109,6 @@ def get_lazy_dist(i: int, j: int, M: np.ndarray, rank: int, diss_matrix: np.ndar
     return dot_prod * diss_matrix[i, j]
 
 @njit(cache=True)
-def get_neighbors(adj_offset: np.ndarray, adj_neighbors: np.ndarray, v: int) -> np.ndarray:
-    start = adj_offset[v]
-    end = adj_offset[v + 1]
-    return adj_neighbors[start:end]
-
-@njit(cache=True)
 def sum_dissimilarities(v: int, k: int, 
                         M: np.ndarray, rank: int, diss_matrix: np.ndarray,
                         partition: np.ndarray, N: int,) -> float:
@@ -123,8 +119,6 @@ def sum_dissimilarities(v: int, k: int,
             dist = get_lazy_dist(v, i, M, rank, diss_matrix)
             sum_diss += dist
     return sum_diss
-
-
 
 
 
