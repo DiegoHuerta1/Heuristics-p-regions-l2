@@ -1,4 +1,3 @@
-from Heuristics import MST_BRKGA, ST_BRKGA, Greedy_BRKGA
 from Heuristics.utils import generate_dissimilarity_matrix
 import igraph
 import os
@@ -32,32 +31,50 @@ def main():
         "max_generations": 20,
         "tolerance_generations": 328,
         "max_time": 9000,  
-        "seed": seed
+        "seed": seed,
     }
     
+
+    # OLD implementation ------------------------------------------
+
     # Apply a MST BRKGA
+    from Heuristics.brkga_core_old.specific_brkga import MST_BRKGA as MST_BRKGA_old
     print("-"*100)
-    print("MST BRKGA\n")
-    brkga = MST_BRKGA(graph, num_regions, diss_matrix, **config)
+    print("MST BRKGA Old\n")
+    brkga = MST_BRKGA_old(graph, num_regions, diss_matrix, **config)
     brkga.run()
     brkga.print_statistics()
     brkga.plot_evolution(plots_path + "mst_brkga_evolution.png")    
     
     # Apply a ST BRKGA
+    from Heuristics.brkga_core_old.specific_brkga import ST_BRKGA as ST_BRKGA_old
     print("-"*100)
     print("ST BRKGA\n")
-    brkga = ST_BRKGA(graph, num_regions, diss_matrix ,**config)
+    brkga = ST_BRKGA_old(graph, num_regions, diss_matrix ,**config)
     brkga.run()
     brkga.print_statistics()
     brkga.plot_evolution(plots_path + "st_brkga_evolution.png")
     
     # Apply a Greedy BRKGA
+    from Heuristics.brkga_core_old.specific_brkga import Greedy_BRKGA as Greedy_BRKGA_old
     print("-"*100)
     print("Greedy BRKGA\n")
-    brkga = Greedy_BRKGA(graph, num_regions, diss_matrix, **config)
+    brkga = Greedy_BRKGA_old(graph, num_regions, diss_matrix, **config)
     brkga.run()
     brkga.print_statistics()
     brkga.plot_evolution(plots_path + "greedy_brkga_evolution.png")
+
+    # NEW implementation ---------------------------------------------------------
+
+    # Apply a Greedy BRKGA
+    from Heuristics.brkga_core.greedy_brkga import Greedy_BRKGA
+    print("-"*100)
+    print("Greedy BRKGA NEW\n")
+    brkga = Greedy_BRKGA(graph, num_regions, diss_matrix, parallel = False, **config)
+    brkga.run()
+    brkga.print_statistics()
+    brkga.plot_evolution(plots_path + "greedy_brkga_evolution.png")
+
 
 
 if __name__ == "__main__":
@@ -66,12 +83,12 @@ if __name__ == "__main__":
     with Profile() as profile:
         main()
     
-    # get the profile stats
-    stats = Stats(profile)
-    # remove extraneous paths
-    stats.strip_dirs() 
-    # sort by cummulative time (or by: SortKey.TIME, SortKey.CALLS)
-    stats.sort_stats(SortKey.CUMULATIVE) 
-    # filter stats (only top 10)
-    stats.print_stats(10)
+    # # get the profile stats
+    # stats = Stats(profile)
+    # # remove extraneous paths
+    # stats.strip_dirs() 
+    # # sort by cummulative time (or by: SortKey.TIME, SortKey.CALLS)
+    # stats.sort_stats(SortKey.CUMULATIVE) 
+    # # filter stats (only top 10)
+    # stats.print_stats(10)
     

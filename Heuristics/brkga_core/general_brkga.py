@@ -57,7 +57,7 @@ class BRKGAPRegions():
         self.tolerance_generations = kwargs.get("tolerance_generations", 100)
         self.max_time =  kwargs.get("max_time", 3600)
         self.seed = kwargs.get("seed", None)
-        self.num_workers =  kwargs.get("num_workers", 5) 
+        self.num_workers =  kwargs.get("num_workers", 4) 
         self.verbose = kwargs.get("verbose", False)
         self.evolution_stats: EvolutionStats
 
@@ -67,6 +67,13 @@ class BRKGAPRegions():
         self.print_general_info(f"\tElite: {self.p_e}")
         self.print_general_info(f"\tMutants: {self.p_m}")
         self.print_general_info(f"\tOffspring: {self.offspring_size}")
+
+        # Select one run method
+        parallel: bool = kwargs.get("parallel", True)
+        if parallel:
+            self.run = self.run_parallel
+        else:
+            self.run = self.run_sequential
 
     # ------------------------------------------
     # Utility methods for brkga dynamics
@@ -131,17 +138,9 @@ class BRKGAPRegions():
     # ------------------------
     # Evolution
 
-    def run(self):
+    def run_parallel(self):
         """
-        Main method to evolve a population of chromosomes
-
-        Saves a dictionary of results in self.evolution_stats
-        This is a dictionary with the results:
-            - best_chromosome: Best chromosome found
-            - best_solution: Best solution found (decoded chromosome)
-            - best_fitness: Fitness of the best solution
-            - population_stats: Population statistics over generations
-            - time: Execution time
+        Main method to evolve a population of chromosomes in parallel
         """
         population_statistics = []
         
@@ -244,6 +243,91 @@ class BRKGAPRegions():
             finally:
                 if processor:
                         processor.cleanup()
+
+
+    def run_sequential(self):
+        """
+        Main method to evolve a population of chromosomes in parallel
+        """
+        population_statistics = []
+        
+        # set random seed and start time
+        if self.seed is not None:
+            np.random.seed(self.seed)
+        start_time = time.time()
+                
+        # Initialize population (generation 0)
+        self.print_general_info("BRKGA Evolution")
+
+        # Part 1 (custom chromosome)
+        size_pop1 = self.p_e
+        pop1 = self.chromosome_generator(size_pop1)
+        fitnes_pop1 = np.array([self.fitness_seq(c, self.dissimilarity_matrix) for c in pop1])
+        # Part 2 (normal chromosome)
+        size_pop2 = self.p - self.p_e
+        pop2 = self.generate_chromosome_array(size_pop2)
+        fitnes_pop2 = np.array([self.fitness_seq(c, self.dissimilarity_matrix) for c in pop2])
+        # Merge
+        population = np.vstack((pop1, pop2))
+        fitness_values = np.concatenate((fitnes_pop1, fitnes_pop2))
+
+        # Sort population and save statistics
+        population, fitness_values = self.sort_population(population, fitness_values)
+        population_statistics.append(self.compute_statistics(fitness_values))
+        self.print_generation_info(fitness_values, 0)
+
+        # Control the generation loop 
+        best_fitness = fitness_values.min()
+        generations_without_improvement = 0
+
+        # Main loop (generations 1 - max_generations)
+        for idx in range(1, self.max_generations + 1):
+
+            # Create offspring and mutants
+            offspring = self.generate_offspring(population)
+            mutants = self.generate_chromosome_array(self.p_m)
+            new_individuals = np.vstack((offspring, mutants))
+            # Compute fitness of new individuals
+            new_fitness = np.array([self.fitness_seq(c, self.dissimilarity_matrix) for c in new_individuals])
+
+            # Update population
+            population = np.vstack((population[:self.p_e], new_individuals))
+            fitness_values = np.concatenate((fitness_values[:self.p_e], new_fitness))
+
+            # Sort population and save statistics
+            population, fitness_values = self.sort_population(population, fitness_values)
+            population_statistics.append(self.compute_statistics(fitness_values))
+            self.print_generation_info(fitness_values, idx)
+
+            # Evaluate the tolerance condition 
+            current_best_fitness = np.min(fitness_values)
+            if current_best_fitness + 1e-4 < best_fitness: # improvement!
+                generations_without_improvement = 0
+                best_fitness = current_best_fitness
+            else:                                          # no improvement :(
+                generations_without_improvement += 1
+            if generations_without_improvement >= self.tolerance_generations:
+                break
+
+            # Evaluate the time condition
+            elapsed_time = time.time() - start_time
+            if elapsed_time >= self.max_time:
+                break
+    
+        # Get best solution
+        best_idx = np.argmin(fitness_values)
+        best_fitness = fitness_values[best_idx]
+        best_chromosome = population[best_idx]
+        best_solution = self.decoder_func(best_chromosome, self.dissimilarity_matrix)
+        # Store evolution statistics
+        self.evolution_stats = {
+            "best_chromosome": best_chromosome,
+            "best_solution": best_solution,
+            "best_fitness": float(best_fitness),
+            "population_stats": pd.DataFrame(population_statistics),
+            "time": time.time() - start_time
+        }
+
 
     # --------------------------------------------------------------------
     # Post run methods
