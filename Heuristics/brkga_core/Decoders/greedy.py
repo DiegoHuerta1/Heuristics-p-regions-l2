@@ -1,7 +1,6 @@
 import numpy as np
 from numba import njit
 
-from ..utils import l2_objective_array_version
 
 @njit(cache=True)
 def greedy_fitness(chromosome: np.ndarray, 
@@ -119,6 +118,27 @@ def sum_dissimilarities(v: int, k: int,
             dist = get_lazy_dist(v, i, M, rank, diss_matrix)
             sum_diss += dist
     return sum_diss
+
+
+@njit(fastmath=True, cache=True)
+def l2_objective_array_version(N: int, K:int, partition: np.ndarray, n_k: np.ndarray,
+                               diss_matrix: np.ndarray) -> float:
+    # Error of each region
+    region_sums = np.zeros(K, dtype=np.float64)
+
+    # Iterate on each pair of nodes in the same region
+    for i in range(N):
+        k = partition[i]
+        for j in range(i + 1, N):
+            if partition[j] == k:
+                # Add the distance
+                region_sums[k] += diss_matrix[i, j]
+
+    # Add the total cost (divide each by n_k)
+    total_cost = 0.0
+    for k in range(K):
+        total_cost += region_sums[k] / n_k[k]
+    return total_cost
 
 
 

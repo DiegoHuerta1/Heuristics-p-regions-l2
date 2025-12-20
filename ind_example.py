@@ -6,7 +6,7 @@ import os
 def main():   
  
     # Define instance
-    instance_path = "./Instances_Mexico/17.pkl"
+    instance_path = "./Instances_Mexico/07.pkl"
     plots_path = "./Example_plots/"
     os.makedirs(plots_path, exist_ok=True)
     num_regions = 10
@@ -24,56 +24,62 @@ def main():
     
     # BRKGA parameters
     config = {
-        "population_size": 100,
+        "population_size": 200,
         "elite_fraction": 0.2,
         "mutant_fraction": 0.2,
         "crossover_rate": 0.7,
-        "max_generations": 20,
+        "max_generations": 200,
         "tolerance_generations": 328,
         "max_time": 9000,  
         "seed": seed,
     }
     
 
-    # OLD implementation ------------------------------------------
-
-    # Apply a MST BRKGA
+    # Apply a MST BRKGA - OLD
     from Heuristics.brkga_core_old.specific_brkga import MST_BRKGA as MST_BRKGA_old
     print("-"*100)
-    print("MST BRKGA Old\n")
+    print("MST BRKGA - Old\n")
     brkga = MST_BRKGA_old(graph, num_regions, diss_matrix, **config)
     brkga.run()
     brkga.print_statistics()
-    brkga.plot_evolution(plots_path + "mst_brkga_evolution.png")    
-    
-    # Apply a ST BRKGA
-    from Heuristics.brkga_core_old.specific_brkga import ST_BRKGA as ST_BRKGA_old
-    print("-"*100)
-    print("ST BRKGA\n")
-    brkga = ST_BRKGA_old(graph, num_regions, diss_matrix ,**config)
-    brkga.run()
-    brkga.print_statistics()
-    brkga.plot_evolution(plots_path + "st_brkga_evolution.png")
-    
-    # Apply a Greedy BRKGA
-    from Heuristics.brkga_core_old.specific_brkga import Greedy_BRKGA as Greedy_BRKGA_old
-    print("-"*100)
-    print("Greedy BRKGA\n")
-    brkga = Greedy_BRKGA_old(graph, num_regions, diss_matrix, **config)
-    brkga.run()
-    brkga.print_statistics()
-    brkga.plot_evolution(plots_path + "greedy_brkga_evolution.png")
+    brkga.plot_evolution(plots_path + "mst_brkga_evolution.png")   
 
-    # NEW implementation ---------------------------------------------------------
-
-    # Apply a Greedy BRKGA
-    from Heuristics.brkga_core.greedy_brkga import Greedy_BRKGA
-    print("-"*100)
-    print("Greedy BRKGA NEW\n")
-    brkga = Greedy_BRKGA(graph, num_regions, diss_matrix, parallel = False, **config)
+    from Heuristics import MST_BRKGA
+    print("\nMST BRKGA\n")
+    brkga = MST_BRKGA(graph, num_regions, diss_matrix, parallel = True, **config)
     brkga.run()
     brkga.print_statistics()
-    brkga.plot_evolution(plots_path + "greedy_brkga_evolution.png")
+    brkga.plot_evolution(plots_path + "mst_brkga_evolution.png")  
+
+
+
+    # # Apply a ST BRKGA - Old
+    # from Heuristics.brkga_core_old.specific_brkga import ST_BRKGA as ST_BRKGA_old
+    # print("-"*100)
+    # print("ST BRKGA - Old\n")
+    # brkga = ST_BRKGA_old(graph, num_regions, diss_matrix ,**config)
+    # brkga.run()
+    # brkga.print_statistics()
+    # brkga.plot_evolution(plots_path + "st_brkga_evolution.png")
+
+
+    
+    # # Apply a Greedy BRKGA - Old
+    # from Heuristics.brkga_core_old.specific_brkga import Greedy_BRKGA as Greedy_BRKGA_old
+    # print("-"*100)
+    # print("Greedy BRKGA - Old\n")
+    # brkga = Greedy_BRKGA_old(graph, num_regions, diss_matrix, **config)
+    # brkga.run()
+    # brkga.print_statistics()
+    # brkga.plot_evolution(plots_path + "greedy_brkga_evolution.png")
+
+    # # Apply a Greedy BRKGA - New
+    # from Heuristics import Greedy_BRKGA
+    # print("\nGreedy BRKGA\n")
+    # brkga = Greedy_BRKGA(graph, num_regions, diss_matrix, parallel = False, **config)
+    # brkga.run()
+    # brkga.print_statistics()
+    # brkga.plot_evolution(plots_path + "greedy_brkga_evolution.png")
 
 
 
