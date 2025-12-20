@@ -336,7 +336,6 @@ class BRKGAPRegions():
         """
         Print the statistics of the evolution
         """
-        print("-"*100)
         print(f"Best fitness: {self.evolution_stats['best_fitness']:4f}")
         print(f"Execution time: {self.evolution_stats['time']:4f} seconds")
         print(f"Last generation: {self.evolution_stats['population_stats'].index.max()}")

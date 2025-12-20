@@ -1,9 +1,10 @@
 import igraph
 import numpy as np
 from functools import partial
+import igraph
 
 from .general_brkga import BRKGAPRegions
-from .Decoders.mst import mst_decoder, mst_fitness
+from .Decoders.st import st_decoder, st_fitness
 from .utils import P_Dict
 from ..utils import generate_dissimilarity_matrix
 
@@ -23,12 +24,12 @@ def _init_worker(num_nodes: int, edges: np.ndarray, diss_weights: np.ndarray):
 def chromosome_fitness_wrapper(chromosome: np.ndarray, 
                                dissimilarity_matrix: np.ndarray,
                                num_edges: int, K: int) -> float:
-    return mst_fitness(chromosome, dissimilarity_matrix, num_edges, K, 
+    return st_fitness(chromosome, dissimilarity_matrix, num_edges, K, 
                        _WORKER_GRAPH, _WORKER_DISS_WEIGHTS) # type: ignore
 
 
 
-class MST_BRKGA(BRKGAPRegions):
+class ST_BRKGA(BRKGAPRegions):
 
     def __init__(self, graph: igraph.Graph, num_regions: int, 
                  dissimilarity_matrix: np.ndarray | None = None, **kwargs):
@@ -51,7 +52,7 @@ class MST_BRKGA(BRKGAPRegions):
         init_args = (num_nodes, np.array(edges), diss_weights)
 
         # Sequential fitness
-        fitness_seq = partial(mst_fitness, 
+        fitness_seq = partial(st_fitness, 
                               num_edges = num_edges, K = num_regions,
                               G = graph, diss_weights = diss_weights)
 
@@ -61,18 +62,21 @@ class MST_BRKGA(BRKGAPRegions):
 
         # Decoder
         def decoder_func(chromosome: np.ndarray, diss_matrix: np.ndarray) -> P_Dict:
-            P = mst_decoder(chromosome, diss_matrix,
-                            num_edges = num_edges, K = num_regions,
-                            G = graph, diss_weights = diss_weights)
+            P = st_decoder(chromosome, diss_matrix,
+                           num_edges = num_edges, K = num_regions,
+                           G = graph, diss_weights = diss_weights)
             return P
         
         # Create custom chromosomes (nothing spetial)
         def chromosome_generator(size_pop: int) -> np.ndarray:
-            return np.random.rand(size_pop, num_edges * 2)
+            pop_first_half = np.ones((size_pop, num_edges))
+            pop_second_half = np.random.rand(size_pop, num_nodes)
+            pop = np.hstack((pop_first_half, pop_second_half))
+            return pop
 
 
         # Parent constructor
-        super().__init__(chromosome_length = num_edges * 2,
+        super().__init__(chromosome_length = num_edges + num_nodes,
                          init_worker_func = init_worker_func,
                          init_args = init_args,
                          fitness_seq = fitness_seq,
