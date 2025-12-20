@@ -1,107 +1,75 @@
 import igraph
 import numpy as np
-from ...utils import generate_dissimilarity_matrix
-from functools import partial
-
-from ..parallel_processor import ParallelMatrixProcessor
-from multiprocessing import Pool
-
 import time
 import pandas as pd
 import matplotlib.pyplot as plt
+from multiprocessing import Pool
+from typing import Callable, Iterable
 
-# DECODER
-from ...brkga_core_old import decode, chromosome_fitness
+from .parallel_processor import ParallelMatrixProcessor
+from .utils import EvolutionStats, Fit_Seq, Fit_Par, Decoder
 
 
-# ----------------------------------------------------------------------------------------------
-
-# Variable global que existirá DENTRO de cada worker
-_WORKER_ADJACENCY = None
-
-def _init_worker_adjacency(adj_dict: dict):
+class BRKGAPRegions():
     """
-    Esta función es llamada una vez por worker.
-    Guarda el diccionario de adyacencia en su scope global.
+    Base class for Biased Random-Key Genetic Algorithm (BRKGA) for the P-regions problem
     """
-    global _WORKER_ADJACENCY
-    _WORKER_ADJACENCY = adj_dict
 
-def chromosome_fitness_wrapper(chromosome: np.ndarray, 
-                               dissimilarity_matrix: np.ndarray,
-                               N: int, num_pairs: int,
-                               K: int) -> float:
-    """
-    Un wrapper que llama a la función real, pero
-    toma 'adjacency' de la variable global del worker.
-    """
-    # Llama a tu 'chromosome_fitness' original,
-    # pero le pasa el diccionario global
-    return chromosome_fitness(chromosome, dissimilarity_matrix,
-                              N, num_pairs, K,
-                              _WORKER_ADJACENCY) # type: ignore
-
-
-# ----------------------------------------------------------------------------------------------
-class Greedy_BRKGA_parallel:
-
-    def __init__(self, adj_graph_or_dict: igraph.Graph | dict,
-                 num_regions: int,
-                 dissimilarity_matrix: np.ndarray | None = None, **kwargs):
+    def __init__(self, chromosome_length: int,
+                 init_worker_func: Callable, init_args: Iterable,
+                 fitness_seq: Fit_Seq, 
+                 fitness_parallel: Fit_Par,
+                 decoder_func: Decoder,
+                 chromosome_generator: Callable[[int], np.ndarray],
+                 dissimilarity_matrix: np.ndarray, **kwargs):
         
-        # Define main attributes
-        self.N: int  # number of nodes
-        self.n: int  # chromosome length
-        self.adjacency: dict[int, list[int]]
-        self.dissimilarity_matrix: np.ndarray
+        # Parameters for this specific BRKGA implementation
+        self.init_worker_func: Callable = init_worker_func
+        self.init_args: Iterable = init_args
+        self.fitness_seq: Fit_Seq = fitness_seq
+        self.fitness_parallel: Fit_Par = fitness_parallel
+        self.decoder_func: Decoder = decoder_func  
+        self.chromosome_generator: Callable[[int], np.ndarray] = chromosome_generator  
 
-        # Set the adjacency and dissimilarity matrix
-        if isinstance(adj_graph_or_dict, igraph.Graph):
-            self.N = adj_graph_or_dict.vcount()                 
-            self.adjacency = {v: adj_graph_or_dict.neighbors(v) for v in range(self.N)}
-            self.dissimilarity_matrix = generate_dissimilarity_matrix(adj_graph_or_dict)
-        else:
-            self.N = len(adj_graph_or_dict)                
-            self.adjacency = adj_graph_or_dict
-            assert dissimilarity_matrix is not None, "If adjacency dict is provided, dissimilarity matrix must be provided too."
-            self.dissimilarity_matrix = dissimilarity_matrix
-
-        # Set attributes
-        self.num_pairs = self.N*(self.N - 1)//2   
-        self.n = self.num_pairs + self.N  
-        self.K = num_regions
-   
-        # GET BRKGA PARAMETERS FROM KWARGS
+        # Population parameters
+        self.n: int = chromosome_length
+        self.p: int
         population_size = kwargs.get("population_size", 200)
-        elite_fraction = kwargs.get("elite_fraction", 0.2)
-        mutant_fraction = kwargs.get("mutant_fraction", 0.2)
-        crossover_rate = kwargs.get("crossover_rate", 0.7)
-
-        # SET BRKGA PARAMETERS       
         if isinstance(population_size, float):
             self.p = int(population_size * self.n)
         else:
             self.p = population_size
+        elite_fraction = kwargs.get("elite_fraction", 0.2)
         assert 0 < elite_fraction < 0.5, "Elite fraction must be in (0, 0.5)"
-        self.p_e = int(self.p * elite_fraction)
+        self.p_e: int = int(self.p * elite_fraction)
+        mutant_fraction = kwargs.get("mutant_fraction", 0.2)
         assert 0 < mutant_fraction < 1, "Mutant fraction must be in (0, 1)"
         assert elite_fraction + mutant_fraction < 1, "Elite and mutan fractions must add up to less than 1"
-        self.p_m = int(self.p * mutant_fraction)  
-        self.offspring_size = self.p - self.p_e - self.p_m
-        assert 0.5 < crossover_rate < 1, "Crossover rate must be in (0.5, 1)"
-        self.ro_e = crossover_rate
-        self.evolution_stats = {}
+        self.p_m: int = int(self.p * mutant_fraction)  
+        self.offspring_size: int = self.p - self.p_e - self.p_m
 
         # Aditional parameters
+        self.dissimilarity_matrix = dissimilarity_matrix
+        crossover_rate = kwargs.get("crossover_rate", 0.7)
+        assert 0.5 < crossover_rate < 1, "Crossover rate must be in (0.5, 1)"
+        self.ro_e: float = crossover_rate
         self.max_generations = kwargs.get("max_generations", 200)
         self.tolerance_generations = kwargs.get("tolerance_generations", 100)
         self.max_time =  kwargs.get("max_time", 3600)
         self.seed = kwargs.get("seed", None)
         self.num_workers =  kwargs.get("num_workers", 5) 
         self.verbose = kwargs.get("verbose", False)
-    
+        self.evolution_stats: EvolutionStats
+
+        # Describe BRKGA
+        self.print_general_info(f"Chromosome of length: {self.n}")
+        self.print_general_info(f"Population of size: {self.p}")
+        self.print_general_info(f"\tElite: {self.p_e}")
+        self.print_general_info(f"\tMutants: {self.p_m}")
+        self.print_general_info(f"\tOffspring: {self.offspring_size}")
+
     # ------------------------------------------
-    # UTILITY METHODS FOR THE BRKGA
+    # Utility methods for brkga dynamics
 
     def generate_chromosome_array(self, number_of_chromosomes: int)-> np.ndarray:
         return np.random.rand(number_of_chromosomes, self.n)
@@ -122,6 +90,7 @@ class Greedy_BRKGA_parallel:
     
     def sort_population(self, population: np.ndarray,
                         fitness_values: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        fitness_values = fitness_values.round(decimals=8)
         sorted_indices = np.argsort(fitness_values)
         population = population[sorted_indices]
         fitness_values = fitness_values[sorted_indices]
@@ -140,8 +109,8 @@ class Greedy_BRKGA_parallel:
         """
         _min = fitness_values.min()
         _mean = fitness_values.mean()
-        _std = fitness_values.std()
-        self.print_general_info(f"Generation {idx}: Best fitness = {_min:.6f}. Mean fitness = {_mean:.6f}. Std = {_std:.6f}")
+        _median = np.median(fitness_values)
+        self.print_general_info(f"Generation {idx}: Best fitness = {_min:.6f}. Mean = {_mean:.6f}. Median = {_median:.6f}")
 
     def compute_statistics(self, fitness_values: np.ndarray) -> dict:
         """
@@ -158,57 +127,6 @@ class Greedy_BRKGA_parallel:
             "q90": np.quantile(fitness_values, 0.90),
             "elite_cutoff": np.quantile(fitness_values, self.p_e/self.p) # elite quantile
         }
-    
-    def print_statistics(self):
-        """
-        Print the statistics of the evolution
-        """
-        print("-"*100)
-        print(f"Best fitness: {self.evolution_stats['best_fitness']:4f}")
-        print(f"Execution time: {self.evolution_stats['time']:4f} seconds")
-        print(f"Last generation: {self.evolution_stats['population_stats'].index.max()}")
-        diffs = self.evolution_stats['population_stats']['min'].round(4).diff() < 0
-        print(f"Best solution found on iteration: {diffs[diffs].index.max() if diffs.any() else 0}")
-
-    def plot_evolution(self, image_path: str | None = None):
-        """
-        Plot the evolution of the population statistics
-        Saves the plot if image_path is provided,
-        otherwise shows it on screen.
-        """
-
-        df = self.evolution_stats["population_stats"]
-        if df.empty:
-            print("No statistics to plot.")
-            return
-
-        fig, ax = plt.subplots(figsize=(10, 4))
-        # Interquartile range (25th to 75th percentile)
-        ax.fill_between(df.index, df['q25'], df['q75'], color='blue', alpha=0.3, label='25–75% quantile')
-        # Mean
-        ax.plot(df.index, df['mean'], color='black', linestyle='--', label='Mean')
-        # Median 
-        ax.plot(df.index, df['median'], color='blue', label='Median')
-        # Elite quantile
-        ax.plot(df.index, df['elite_cutoff'], color='red', linestyle='--', label=f'Elite Cutoff ({100 * self.p_e/self.p:.0f}% quantile)')
-        # Min
-        ax.plot(df.index, df['min'], label=f"Minimum ({df['min'].iloc[-1]:.2f})", color='red')
-
-        ax.set_title('Population Statistics')
-        ax.set_xlabel('Iteration')
-        ax.set_ylabel('Fitness')
-        ax.legend(
-            loc='upper left',
-            bbox_to_anchor=(1.02, 1),
-            borderaxespad=0,
-            frameon=False
-        )
-        plt.grid(True)
-        if image_path is not None:
-            plt.savefig(image_path, bbox_inches='tight')
-        else:
-            plt.show()
-        plt.close()
 
     # ------------------------
     # Evolution
@@ -233,39 +151,36 @@ class Greedy_BRKGA_parallel:
         start_time = time.time()
 
         # Initialize pool of parallel workers
-        self.print_general_info("Preparing pool...")
+        self.print_general_info("BRKGA Evolution")
         n_parallel = self.p - self.p_e
-        chunk_size=  int(np.ceil(n_parallel / self.num_workers))
+        chunk_size =  int(np.ceil(n_parallel / self.num_workers))
         with Pool(processes = self.num_workers,
-                  initializer = _init_worker_adjacency, 
-                  initargs= (self.adjacency,)) as pool: 
+                  initializer = self.init_worker_func, 
+                  initargs= self.init_args) as pool: 
             processor = None 
-            self.print_general_info("Pool created :)")
+            self.print_general_info("Pool created")
             self.print_general_info(f"Evolution with {self.num_workers} processors. Chunks of size {chunk_size}")
 
             try:
+                
                 # Initialize population (generation 0)
-                population = self.generate_chromosome_array(self.p)
-                # Function to evaluate in each chromosome
-                F_func = partial(chromosome_fitness_wrapper,
-                                N = self.N, num_pairs = self.num_pairs,
-                                K= self.K)
-                # Two groups for initial population (always same num of parallel)
-                parallel_population = population[:n_parallel]
-                sequential_population = population[n_parallel:]
-                # Process the parallel group
-                processor = ParallelMatrixProcessor(parallel_population,
+
+                # Part 1 (custom chromosome, evaluated secuentially)
+                size_pop1 = self.p_e
+                pop1 = self.chromosome_generator(size_pop1)
+                fitnes_pop1 = np.array([self.fitness_seq(c, self.dissimilarity_matrix) for c in pop1])
+                # Part 2 (normal chromosome, evaluated in parallel)
+                size_pop2 = n_parallel
+                pop2 = self.generate_chromosome_array(size_pop2)
+                processor = ParallelMatrixProcessor(pop2 ,
                                                     self.dissimilarity_matrix,
-                                                    func= F_func, 
-                                                    pool=pool,
+                                                    func= self.fitness_parallel, 
+                                                    pool= pool,
                                                     chunk_size=chunk_size)
-                fitness_parallel = processor.execute()
-                # Process the sequential group and merge
-                fitness_sequential = np.array([chromosome_fitness(ch,
-                                                self.dissimilarity_matrix,
-                                                self.N, self.num_pairs, self.K,
-                                                self.adjacency)  for ch in sequential_population])
-                fitness_values = np.concatenate((fitness_parallel, fitness_sequential))
+                fitnes_pop2 = processor.execute()
+                # Merge
+                population = np.vstack((pop1, pop2))
+                fitness_values = np.concatenate((fitnes_pop1, fitnes_pop2))
 
                 # Sort population and save statistics
                 population, fitness_values = self.sort_population(population, fitness_values)
@@ -315,12 +230,7 @@ class Greedy_BRKGA_parallel:
                 best_idx = np.argmin(fitness_values)
                 best_fitness = fitness_values[best_idx]
                 best_chromosome = population[best_idx]
-                best_solution = decode(best_chromosome,
-                                    self.dissimilarity_matrix,
-                                        self.N,
-                                        self.num_pairs,
-                                        self.K,
-                                        self.adjacency)
+                best_solution = self.decoder_func(best_chromosome, self.dissimilarity_matrix)
                 # Store evolution statistics
                 self.evolution_stats = {
                     "best_chromosome": best_chromosome,
@@ -330,11 +240,64 @@ class Greedy_BRKGA_parallel:
                     "time": time.time() - start_time
                 }
 
-            # Clearn shared memory
+            # Clean shared memory
             finally:
                 if processor:
                         processor.cleanup()
 
+    # --------------------------------------------------------------------
+    # Post run methods
+
+    def print_statistics(self):
+        """
+        Print the statistics of the evolution
+        """
+        print("-"*100)
+        print(f"Best fitness: {self.evolution_stats['best_fitness']:4f}")
+        print(f"Execution time: {self.evolution_stats['time']:4f} seconds")
+        print(f"Last generation: {self.evolution_stats['population_stats'].index.max()}")
+        diffs = self.evolution_stats['population_stats']['min'].round(4).diff() < 0
+        print(f"Best solution found on iteration: {diffs[diffs].index.max() if diffs.any() else 0}")
+
+    def plot_evolution(self, image_path: str | None = None):
+        """
+        Plot the evolution of the population statistics
+        Saves the plot if image_path is provided,
+        otherwise shows it on screen.
+        """
+
+        df = self.evolution_stats["population_stats"]
+        if df.empty:
+            self.print_general_info("No statistics to plot.")
+            return
+
+        _, ax = plt.subplots(figsize=(10, 4))
+        # Interquartile range (25th to 75th percentile)
+        ax.fill_between(df.index, df['q25'], df['q75'], color='blue', alpha=0.3, label='25–75% quantile')
+        # Mean
+        ax.plot(df.index, df['mean'], color='black', linestyle='--', label='Mean')
+        # Median 
+        ax.plot(df.index, df['median'], color='blue', label='Median')
+        # Elite quantile
+        ax.plot(df.index, df['elite_cutoff'], color='red', linestyle='--', label=f'Elite Cutoff ({100 * self.p_e/self.p:.0f}% quantile)')
+        # Min
+        ax.plot(df.index, df['min'], label=f"Minimum ({df['min'].iloc[-1]:.2f})", color='red')
+
+        ax.set_title('Population Statistics')
+        ax.set_xlabel('Iteration')
+        ax.set_ylabel('Fitness')
+        ax.legend(
+            loc='upper left',
+            bbox_to_anchor=(1.02, 1),
+            borderaxespad=0,
+            frameon=False
+        )
+        plt.grid(True)
+        if image_path is not None:
+            plt.savefig(image_path, bbox_inches='tight')
+        else:
+            plt.show()
+        plt.close()
 
 
 
