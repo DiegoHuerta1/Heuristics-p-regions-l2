@@ -76,7 +76,7 @@ class ST_BRKGA(BRKGAPRegions):
 
 
         # Parent constructor
-        super().__init__(chromosome_length = num_edges + num_nodes,
+        super().__init__("Shortest-Path", chromosome_length = num_edges + num_nodes,
                          init_worker_func = init_worker_func,
                          init_args = init_args,
                          fitness_seq = fitness_seq,

@@ -15,6 +15,7 @@ class BRKGAPRegions():
     Base class for Biased Random-Key Genetic Algorithm (BRKGA) for the P-regions problem.
 
     Arguments:    
+        name - Name for this particular BRKGA
         chromosome_length - Length of each chromosome array
         init_worker_func - Function for parallel workers
         init_args - args for the init_worker_func function
@@ -40,7 +41,7 @@ class BRKGAPRegions():
 
     """
 
-    def __init__(self, chromosome_length: int,
+    def __init__(self, name: str, chromosome_length: int,
                  init_worker_func: Callable, init_args: Iterable,
                  fitness_seq: Fit_Seq, 
                  fitness_parallel: Fit_Par,
@@ -49,6 +50,7 @@ class BRKGAPRegions():
                  dissimilarity_matrix: np.ndarray, **kwargs):
         
         # Parameters for this specific BRKGA implementation
+        self.name: str = name
         self.init_worker_func: Callable = init_worker_func
         self.init_args: Iterable = init_args
         self.fitness_seq: Fit_Seq = fitness_seq
@@ -94,7 +96,7 @@ class BRKGAPRegions():
         self.evolution_stats: EvolutionStats
 
         # Describe BRKGA
-        self.print_general_info("\nBRKGA for P-Regions Problem", level = 1)
+        self.print_general_info(f"\n{self.name} BRKGA for P-Regions Problem", level = 1)
         self.print_general_info(f"Chromosome of length: {self.n}", level = 1)
         self.print_general_info(f"Population of size: {self.p}", level = 1)
         self.print_general_info(f"\tElite: {self.p_e}", level = 2)
@@ -177,7 +179,7 @@ class BRKGAPRegions():
         start_time = time.time()
 
         # Initialize pool of parallel workers
-        self.print_general_info(f"BRKGA Evolution ({self.num_workers}-parallel)", level = 1)
+        self.print_general_info(f"{self.name} BRKGA Evolution ({self.num_workers}-parallel)", level = 1)
         n_parallel = self.p - self.p_e
         chunk_size =  int(np.ceil(n_parallel / self.num_workers))
         with Pool(processes = self.num_workers,
@@ -285,7 +287,7 @@ class BRKGAPRegions():
         start_time = time.time()
                 
         # Initialize population (generation 0)
-        self.print_general_info("BRKGA Evolution (sequential)", level = 1)
+        self.print_general_info(f"{self.name} BRKGA Evolution (sequential)", level = 1)
 
         # Part 1 (custom chromosome)
         size_pop1 = self.p_e
@@ -365,11 +367,12 @@ class BRKGAPRegions():
         """
         Print the statistics of the evolution
         """
-        print(f"Best fitness: {self.evolution_stats['best_fitness']:4f}")
-        print(f"Execution time: {self.evolution_stats['time']:4f} seconds")
-        print(f"Last generation: {self.evolution_stats['population_stats'].index.max()}")
+        print(f"{self.name} BRKGA results:")
+        print(f"\tBest fitness: {self.evolution_stats['best_fitness']:4f}")
+        print(f"\tExecution time: {self.evolution_stats['time']:4f} seconds")
+        print(f"\tLast generation: {self.evolution_stats['population_stats'].index.max()}")
         diffs = self.evolution_stats['population_stats']['min'].round(4).diff() < 0
-        print(f"Best solution found on iteration: {diffs[diffs].index.max() if diffs.any() else 0}")
+        print(f"\tBest solution found on iteration: {diffs[diffs].index.max() if diffs.any() else 0}")
 
     def plot_evolution(self, image_path: str | None = None):
         """

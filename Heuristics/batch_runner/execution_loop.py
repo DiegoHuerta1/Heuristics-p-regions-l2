@@ -6,8 +6,6 @@ from tqdm import tqdm
 import pandas as pd
 import json
 import time
-import matplotlib.pyplot as plt 
-import seaborn as sns
 
 from .utils import all_heuristics_list, get_ranks_df, add_relative_gap_columns
 from .stat_analysis import friedman_for_heuristics

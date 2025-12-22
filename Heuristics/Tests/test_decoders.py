@@ -3,9 +3,9 @@ import numpy as np
 from hypothesis import strategies as st
 from hypothesis import given, settings
 from hypothesis.extra.numpy import arrays
-from Heuristics.utils import generate_dissimilarity_matrix
+from Heuristics.utils import get_mexican_instance_data
 
-# pytest -v Heuristics/Test/test_decoders.py
+# pytest -v Heuristics/Tests/test_decoders.py
 
 # Utils -----------------------------------------------
 
@@ -23,20 +23,6 @@ def equal_partitions(P1: dict, P2: dict, K: int):
 IDS = [str(n).zfill(2) for n in range(1, 32)]
 
 
-def get_instance_data(id: str) -> tuple[igraph.Graph, list[int], np.ndarray]:
-    """  
-    Get all information about an instance
-    Using Instances_Mexico
-    """
-    # Read graph
-    instance_path = f"./Instances_Mexico/{id}.pkl"
-    with open(instance_path, "rb") as f:
-        graph = igraph.Graph.Read_Pickle(f)
-    # Options for K
-    K_options = list(range(2, min(graph.vcount() - 1, 10) ))
-    # Diss matrix
-    diss_matrix = generate_dissimilarity_matrix(graph)
-    return graph, K_options, diss_matrix
 
 
 @st.composite
@@ -47,7 +33,7 @@ def draw_all_info(draw, length_fn, rank=0):
     """
     # Draw instance
     id_ = draw(st.sampled_from(IDS))
-    graph, K_opts, diss = get_instance_data(id_)
+    graph, K_opts, diss = get_mexican_instance_data(id_)
 
     # Draw K
     K = draw(st.sampled_from(K_opts))

@@ -72,7 +72,7 @@ class MST_BRKGA(BRKGAPRegions):
 
 
         # Parent constructor
-        super().__init__(chromosome_length = num_edges * 2,
+        super().__init__("Minimum-Spanning-Tree", chromosome_length = num_edges * 2,
                          init_worker_func = init_worker_func,
                          init_args = init_args,
                          fitness_seq = fitness_seq,

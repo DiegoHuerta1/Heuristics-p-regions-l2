@@ -5,8 +5,9 @@ from typing import cast
 import pygeoda
 
 from ..utils import generate_dissimilarity_matrix, igraph_to_gdf
-from ..brkga_core_deprecated.specific_brkga import MST_BRKGA, ST_BRKGA, Greedy_BRKGA
-
+from ..brkga_core.mst_brkga import MST_BRKGA
+from ..brkga_core.st_brkga import ST_BRKGA
+from ..brkga_core.greedy_brkga import Greedy_BRKGA
 from .utils import all_heuristics_list, run_brkga_heuristic, run_pygeoda_heuristic
 
 
@@ -82,7 +83,7 @@ def run_all_on_graph(graph: igraph.Graph, num_regions: int,
 
     # ----- Prepare data for PyGeoda methods ---------------------
 
-    # Transform graph into data and 2
+    # Transform graph into data and w
     created_gdf: gpd.GeoDataFrame = igraph_to_gdf(graph)
     gda: pygeoda.gda.geodaGpd = cast(pygeoda.gda.geodaGpd, pygeoda.open(created_gdf))
     w: pygeoda.Weight = pygeoda.queen_weights(gda)

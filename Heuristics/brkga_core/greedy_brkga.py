@@ -81,7 +81,7 @@ class Greedy_BRKGA(BRKGAPRegions):
 
 
         # Parent constructor
-        super().__init__(chromosome_length = break_point + num_nodes,
+        super().__init__("Greedy", chromosome_length = break_point + num_nodes,
                          init_worker_func = init_worker_func,
                          init_args = init_args,
                          fitness_seq = fitness_seq,

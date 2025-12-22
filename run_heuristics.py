@@ -6,7 +6,7 @@ from Heuristics import Batch_Execution
 # ================================================
 
 data_folder = "Instances_Mexico/"
-output_folder = data_folder + "Results/"
+output_folder = "Results_Mexico/"
 heuristics = [] 
 repetitions = 3
 
@@ -18,13 +18,15 @@ brkga_config = {
     "max_generations": 1000,
     "tolerance_generations": 100,
     "max_time": 60,  
-    "seed": 1
+    "parallel": False,
+    "num_workers": 4,
+    "rank": 2,
+    "verbose": 1,
 }
 pygeoda_config = {
     "redcap__method": "fullorder-averagelinkage",
     "schc__linkage_method": "complete",
     "azp_tabu__tabu_length":  10,
-    "seed": 1,
 }
 
 def get_number_of_regions(n: int) -> list[int]:

@@ -180,3 +180,21 @@ def obtain_node_geometries(graph: igraph.Graph) -> list[MultiPolygon]:
     geometries = [MultiPolygon(lists_polygons[v.index]) for v in graph.vs]
     return geometries
 
+
+def get_mexican_instance_data(id: str) -> tuple[igraph.Graph, list[int], np.ndarray]:
+    """  
+    Get all information about an instance
+    Using Instances_Mexico
+    """
+    # Read graph
+    instance_path = f"./Instances_Mexico/{id}.pkl"
+    with open(instance_path, "rb") as f:
+        graph = igraph.Graph.Read_Pickle(f)
+    # Options for K
+    K_options = list(range(2, min(graph.vcount() - 1, 10) ))
+    # Diss matrix
+    diss_matrix = generate_dissimilarity_matrix(graph)
+    return graph, K_options, diss_matrix
+
+
+
