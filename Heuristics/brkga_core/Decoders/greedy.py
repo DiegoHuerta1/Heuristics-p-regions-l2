@@ -23,7 +23,10 @@ def greedy_decoder(chromosome: np.ndarray, diss_matrix: np.ndarray,
     # Obtain the low rank matrix induced by the chromosome
     M = chromosome[:break_point].reshape((N, rank)).copy()   
     # Get K seed nodes from the second part (lowest values)
-    seed_nodes: np.ndarray = np.argsort(chromosome[break_point:])[:K]
+    x = chromosome[break_point:]
+    order = np.argsort(x, kind="mergesort")
+    seed_nodes = order[:K]
+    # print(seed_nodes)
     
     # Start Partition with seeds  (0 index, -1 means unnasigned)
     partition: np.ndarray =  np.full(N, -1, dtype=np.int32)
@@ -62,6 +65,7 @@ def greedy_decoder(chromosome: np.ndarray, diss_matrix: np.ndarray,
                     value_g = val
                     v_star = v
                     k_star = k
+        # print(f"({v_star}, {k_star})")
         # Compute the future value of R_k_star after making the assignement
         future_R_k_star = R_k[k_star] + value_g
 

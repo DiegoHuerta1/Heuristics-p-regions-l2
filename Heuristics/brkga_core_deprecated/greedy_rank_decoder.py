@@ -1,7 +1,7 @@
 import numpy as np
 import itertools
 
-from ...utils import l2_objective_function_diss_matrix
+from ..utils import l2_objective_function_diss_matrix
 
 # --------------------------------------------------------
 # COMPUTE FITNESS 
@@ -35,7 +35,10 @@ def decode(chromosome: np.ndarray,
     matrix_d =  matrix_c * dissimilarity_matrix
     
     # Get K seed nodes from the second part (lowest values)
-    seed_nodes = np.argsort(chromosome[break_point:])[:K]
+    x = chromosome[break_point:]
+    order = np.argsort(x, kind="mergesort")
+    seed_nodes = order[:K]
+    # print(seed_nodes)
     
     # Keep track of assigned nodes
     assigned_nodes: set[int] = set(seed_nodes)
@@ -55,7 +58,9 @@ def decode(chromosome: np.ndarray,
     while feasible_elements_g:
 
         # Get the element with lowest evaluation
-        v_star, k_star = min(feasible_elements_g, key=lambda e: feasible_elements_g[e])
+        v_star, k_star = min(feasible_elements_g,
+                            key=lambda e: (feasible_elements_g[e], e[0], e[1]) )
+        # print(f"({v_star}, {k_star}): {feasible_elements_g[(v_star, k_star)]}")
 
         # Compute the future value of R_k_star after making the assignement
         future_R_k_star = compute_future_R_k(v_star, k_star, matrix_d, P, R_k)

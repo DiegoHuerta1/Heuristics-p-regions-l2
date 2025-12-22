@@ -5,7 +5,7 @@ from typing import cast
 import pygeoda
 
 from ..utils import generate_dissimilarity_matrix, igraph_to_gdf
-from ..brkga_core_old.specific_brkga import MST_BRKGA, ST_BRKGA, Greedy_BRKGA
+from ..brkga_core_deprecated.specific_brkga import MST_BRKGA, ST_BRKGA, Greedy_BRKGA
 
 from .utils import all_heuristics_list, run_brkga_heuristic, run_pygeoda_heuristic
 
