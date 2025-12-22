@@ -21,7 +21,7 @@ brkga_config = {
     "parallel": False,
     "num_workers": 4,
     "rank": 2,
-    "verbose": 1,
+    "verbose": 0,
 }
 pygeoda_config = {
     "redcap__method": "fullorder-averagelinkage",
@@ -53,7 +53,7 @@ model = Batch_Execution(
     repetitions = repetitions
 )
 model.print_initial_information()
-model.run()
+# model.run()
 
 
 # ================================================
@@ -71,9 +71,7 @@ heuristics_to_analyze = [
    "azp_sa",
    "azp_tabu"
 ]
-instances_to_analyze = ["32"]
-# instances_to_analyze = []
-model.analyze_results(heuristics_to_analyze, instances_to_analyze)
+model.analyze_results(heuristics_to_analyze)
 
 # ================================================
 # ================================================

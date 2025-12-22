@@ -9,5 +9,5 @@
     "parallel": false,
     "num_workers": 4,
     "rank": 2,
-    "verbose": 1
+    "verbose": 0
 }

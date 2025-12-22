@@ -235,6 +235,7 @@ class Batch_Execution():
         # Save metric results and update df
         self.results.append(metrics)
         self.results_df = self.get_results_df(self.results)
+        self.results_df = add_relative_gap_columns(self.results_df, self.heuristics)
         self.results_df.to_csv(self.output_df_path, index=False)
 
         # Save partitions with names of nodes, not index
@@ -297,16 +298,10 @@ class Batch_Execution():
     # Analyze Results -----------
     # ---------------------------
 
-    def analyze_results(self,  heuristics: list[str] = [],
-                        instances: list[str] = []):
+    def analyze_results(self,  heuristics_: list[str] = []):
         """ 
         Summarize performance, statistical test and visualizations after execution.
-        
-        Args:
-            heuristics (list[str]): Optional subset of heuristics to analyze.
-                                     Defaults to empty list (use all heuristics).
-            instances (list[str]): Optional subset of instances to analyze.
-                                   Defaults to empty list (use all instances).
+    
         """
         # In case there are no results yet
         if self.results_df.empty:
@@ -315,32 +310,42 @@ class Batch_Execution():
             return
         
         # Use full heuristics if none specified
-        heuristics_to_use: list[str] = heuristics if heuristics else self.heuristics
-        # Use all instances if none specified
-        instances_to_use: list[str] = instances if instances else list(self.instances.keys())
-
-        # Filter results df based on instances
-        df_analyze = self.results_df[self.results_df["ID"].apply(
-            lambda id_: id_.split("__")[0] in instances_to_use
-        )]
-        # Add the relative gap columns
-        df_analyze = add_relative_gap_columns(df_analyze, heuristics_to_use)
+        heuristics: list[str] = heuristics_ if len(heuristics_) > 0 else self.heuristics
+        # Get list of instances in the results
+        instances: list[str] = list(self.results_df["ID"].apply(lambda x: x.split("__")[0]).unique())        
 
         print("")
         print("-"*100)
-        print(f"Analyzing results for {len(heuristics_to_use)} heuristics and {len(instances_to_use)} instances")
-        print("Heuristics:", ", ".join(heuristics_to_use))
-        print("Instances:", ", ".join(instances_to_use))
-        print(f"Total of {df_analyze.shape[0]} executions\n")
+        print(f"Analyzing results for {len(heuristics)} heuristics and {len(instances)} instances")
+        print("Heuristics:", ", ".join(heuristics))
+        print("Instances:", ", ".join(instances))
+        print(f"Total of {self.results_df.shape[0]} executions\n")
 
-        # Print general information
-        self._print_heuristics_performance_report(heuristics_to_use, df_analyze)
-        # Statistical test
-        if len(heuristics_to_use) >= 3:
-            friedman_for_heuristics(heuristics_to_use, df_analyze, self.plot_folder)
-        # Visualizations
-        plot_results = ResultPlotter(heuristics_to_use, df_analyze, self.plot_folder)
+        # Analize for each instance
+        for instance_name in instances:
+            df_analyze = self.results_df[self.results_df["ID"].apply(lambda x: x.split("__")[0] == instance_name)]
+
+            # Plot results for this instance
+            plot_results = ResultPlotter(heuristics, df_analyze, self.plot_folder, instance_name)
+            plot_results.make_all_plots()
+
+            # Print performance report for each K
+            K_values = df_analyze["K"].unique()
+            for K in K_values:
+                df_analyze_K = df_analyze[df_analyze["K"] == K]
+                print("\n" + "-"*100)
+                print(f"Instance: {instance_name} - K = {K}")
+                self._print_heuristics_performance_report(heuristics, df_analyze)
+
+
+        # Agregate analysis over all instances
+        print("\n" + "-"*100)
+        print("All Instances aggregated")
+        self._print_heuristics_performance_report(heuristics, self.results_df)
+        plot_results = ResultPlotter(heuristics, self.results_df, self.plot_folder, "All")
         plot_results.make_all_plots()
+        if len(heuristics) >= 3:
+            friedman_for_heuristics(heuristics, self.results_df, self.plot_folder)
 
 
     # helper
@@ -385,7 +390,6 @@ class Batch_Execution():
             })
 
         # Print summary table
-        print("")
         print("-" * 100)
         print("Summary table\n")
         print(f"{'Heuristic':<20} {'Min f':>10} {'Mean f':>10} {'Mean (rel) gap':>15} {'Mean Rank':>12} {'Wins':>8}")
