@@ -8,6 +8,6 @@
     "max_time": 60,
     "parallel": false,
     "num_workers": 4,
-    "rank": 2,
+    "rank": 3,
     "verbose": 0
 }

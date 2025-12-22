@@ -115,7 +115,7 @@ def labels_to_P(labels: tuple[int], K: int) -> dict[int, list[int]]:
         if k in np.unique(labels_arr):
             # Add node indices to region
             P_k = np.where(labels_arr == k)[0]
-            P[k] = list(P_k)
+            P[k] = [int(v) for v in P_k]
         else:
             # Empty region
             P[k] = []

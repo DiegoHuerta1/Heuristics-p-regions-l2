@@ -20,7 +20,7 @@ brkga_config = {
     "max_time": 60,  
     "parallel": False,
     "num_workers": 4,
-    "rank": 2,
+    "rank": 3,
     "verbose": 0,
 }
 pygeoda_config = {
@@ -53,7 +53,7 @@ model = Batch_Execution(
     repetitions = repetitions
 )
 model.print_initial_information()
-# model.run()
+model.run(max_time = 5)  
 
 
 # ================================================
@@ -71,7 +71,7 @@ heuristics_to_analyze = [
    "azp_sa",
    "azp_tabu"
 ]
-model.analyze_results(heuristics_to_analyze)
+# model.analyze_results(heuristics_to_analyze)
 
 # ================================================
 # ================================================

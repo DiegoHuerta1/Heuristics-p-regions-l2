@@ -7,7 +7,7 @@ import os
 def main():   
  
     # Define instance
-    instance_path = "./Instances_Mexico/07.pkl"
+    instance_path = "./Instances_Mexico/05.pkl"
     plots_path = "./Example_plots/"
     os.makedirs(plots_path, exist_ok=True)
     num_regions = 10
@@ -23,14 +23,14 @@ def main():
     
     # BRKGA parameters
     config = {
-        "population_size": 1.0,
+        "population_size": 100,
         "elite_fraction": 0.2,
         "mutant_fraction": 0.2,
         "crossover_rate": 0.7,
-        "max_generations": 2000,
-        "tolerance_generations": 200,
-        "max_time": 9000,  
-        "parallel": True,
+        "max_generations": 1000,
+        "tolerance_generations": 100,
+        "max_time": 60,  
+        "parallel": False,
         "num_workers": 4,
         "seed": 1,
         "verbose": 1
@@ -58,7 +58,7 @@ def main():
     # Apply a Greedy BRKGA  ------------------------------------------------
     print("-"*100)
     print("Greedy BRKGA\n")
-    brkga = Greedy_BRKGA(graph, num_regions, diss_matrix, rank = 1, **config)
+    brkga = Greedy_BRKGA(graph, num_regions, diss_matrix, rank = 3, **config)
     brkga.run()
     brkga.print_statistics()
     brkga.plot_evolution(plots_path + "greedy_brkga_evolution.png")

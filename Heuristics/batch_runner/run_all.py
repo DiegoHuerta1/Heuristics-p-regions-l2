@@ -3,6 +3,9 @@ import numpy as np
 import geopandas as gpd
 from typing import cast
 import pygeoda
+import time
+from pathlib import Path
+import json
 
 from ..utils import generate_dissimilarity_matrix, igraph_to_gdf
 from ..brkga_core.mst_brkga import MST_BRKGA
@@ -15,7 +18,9 @@ def run_all_on_graph(graph: igraph.Graph, num_regions: int,
                      brkga_config: dict, pygeoda_config: dict,
                      diss_matrix: None | np.ndarray = None,
                      heuristics: list[str] = ["mst_brkga", "st_brkga", "greedy_brkga"],
-                     evolution_folder: str | None = None) -> tuple[dict, dict]:
+                     evolution_folder: str | None = None,
+                     max_time: float = float('inf'),
+                     partial_path: Path = Path(".")) -> tuple[dict, dict, bool]:
     """
     Run all heuristics on a graph instance
 
@@ -38,12 +43,16 @@ def run_all_on_graph(graph: igraph.Graph, num_regions: int,
                                         Defaults to ["mst_brkga", "st_brkga", "greedy_brkga"].
         evolution_folder (str | None, optional): Folder to save evolution plots for BRKGA methods.
                                                 Defaults to None.
+        max_time (float, optional): Maximum time to run all heuristics. Defaults to infinity.
+        partial_path (Path, optional): Path to save partial results. Defaults to Path(".").
 
     Returns:
-        tuple[dict, dict]: Two dictionaries.
+        tuple[dict, dict, bool]: Two dictionaries and a bool.
             The first one with result metrics for each method
             The second one with the partitions obtained by each method 
+            The bool indicates if the results are complete (i.e., all methods were run)
     """
+    start_time = time.time()
 
     # Use all heuristics if none specified
     if len(heuristics) == 0:
@@ -60,6 +69,17 @@ def run_all_on_graph(graph: igraph.Graph, num_regions: int,
     }
     # Start empty partition dictionary
     dict_partitions: dict = {}
+
+    # Check por partial results
+    if partial_path.exists():
+        with open(partial_path, "r") as f:
+            partial_results = json.load(f)
+        dict_results.update(partial_results["metrics"])
+        dict_partitions.update(partial_results["partitions"])
+        print(f"\tLoaded partial results from {partial_path}", flush=True)
+        # Update heuristics to run
+        heuristics = [h for h in heuristics if f"{h}__f" not in dict_results]
+
 
     # ----- Run BRKGA methods ----------------------------------
 
@@ -79,6 +99,17 @@ def run_all_on_graph(graph: igraph.Graph, num_regions: int,
             run_brkga_heuristic(brkga_cls, name, graph, num_regions, diss_matrix,
                                 brkga_config, dict_results, dict_partitions,
                                 evolution_path)
+            
+            # Save partial results
+            partial_results = {"metrics": dict_results, "partitions": dict_partitions}
+            with open(partial_path, "w") as f:
+                json.dump(partial_results, f)
+
+            # Check max time
+            elapsed_time = time.time() - start_time
+            if elapsed_time >= max_time:
+                print(f"\tMaximum time reached. Incomplete instance after {name}", flush=True)
+                return dict_results, dict_partitions, False
 
 
     # ----- Prepare data for PyGeoda methods ---------------------
@@ -112,8 +143,22 @@ def run_all_on_graph(graph: igraph.Graph, num_regions: int,
             }
             run_pygeoda_heuristic(method_func, name, num_regions, w, data, diss_matrix,
                                  args, dict_results, dict_partitions)
+            
+            # Save partial results
+            partial_results = {"metrics": dict_results, "partitions": dict_partitions}
+            with open(partial_path, "w") as f:
+                json.dump(partial_results, f)
 
-    return dict_results, dict_partitions
+            # Check max time
+            elapsed_time = time.time() - start_time
+            if elapsed_time >= max_time:
+                print(f"\tMaximum time reached. Incomplete instance after {name}", flush=True)
+                return dict_results, dict_partitions, False
+            
+    # All methods completed
+    if partial_path.exists():
+        partial_path.unlink()
+    return dict_results, dict_partitions, True
 
 
 

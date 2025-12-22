@@ -244,18 +244,22 @@ class Batch_Execution():
             partition_path = Path(self.partitions_folder) / f"{method}__{id_}.txt"
             with open(partition_path, "w") as json_file:
                 json.dump(P_names, json_file, indent=4)
-    
+
+
     # ---------------------------
     # Run executions ------------
     # ---------------------------
 
-    def run(self):
+    def run(self, max_time: float = float('inf')):
         """ 
         Main function.
         Starts the execution loop of all the methods in all the instances.
+        Args:
+            max_time (float, optional): Maximum time for the whole execution loop. Defaults to infinity.
         """
+        start_time = time.time()
 
-        # Check if any progress has been mande before
+        # Check if any progress has been made before
         self.completed_ids = self.get_completed_ids()
         self.results = self.get_partial_results()
 
@@ -284,14 +288,27 @@ class Batch_Execution():
                 os.makedirs(instance_evolution_folder, exist_ok=True)
 
             # Execute heuristics
-            metrics, partitions = run_all_on_graph(graph, num_regions,
-                                                   brkga_config, pygeoda_config,
-                                                   diss_matrix, self.heuristics,
-                                                   instance_evolution_folder)
+            remaining_time = max_time - (time.time() - start_time)
+            metrics, partitions, complete = run_all_on_graph(graph, num_regions,
+                                                             brkga_config, pygeoda_config,
+                                                             diss_matrix, self.heuristics,
+                                                             instance_evolution_folder,
+                                                             max_time = remaining_time,
+                                                             partial_path = Path(self.ids_folder)/f"partial_{id_}.json")
             metrics["ID"] = id_
+
+            # Check for incomplete results
+            if not complete:
+                break
 
             # Mark this execution id as complete
             self.save_results_iteration(id_, metrics, partitions, graph)
+
+            # Check max time to continue
+            elapsed_time = time.time() - start_time
+            if elapsed_time >= max_time:
+                print(f"\tMaximum time reached. Last instance: {id_}")
+                break
 
 
     # ---------------------------
