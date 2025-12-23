@@ -34,6 +34,8 @@ def run_brkga_heuristic(brkga_class, name, graph, num_regions, diss_matrix,
     dict_results[f"{name}__f"] = stats['best_fitness']
     dict_results[f"{name}__time"] = stats['time']
     dict_results[f"{name}__last_gen"] = stats['population_stats'].index.max()
+    # Chromosome length
+    dict_results[f"{name}__c_len"] = model.n
     # Partition
     dict_partitions[name] = stats["best_solution"]
 
