@@ -62,11 +62,16 @@ class MST_BRKGA(GenericBRKGA):
         w_minus = chromosome[:self.M] * self.diss_weights
         w_plus = chromosome[self.M:]
 
+        # Make sure that ties (only possible with 0) are broken with edge id
+        for idx_e in range(len(w_minus)):
+            if w_minus[idx_e] == 0:
+                w_minus[idx_e] = 1e-12 * idx_e
+
         # Get edges from a minimum spanning tree using w_minus
         mst_edges_id = self.G.spanning_tree(weights = w_minus, return_tree = False)
 
         # Drop the first K-1 edges (considering the weights in w_plus)
-        mst_edges_id.sort(key = lambda e: w_plus[e], reverse = True)
+        mst_edges_id.sort(key = lambda e: (w_plus[e], e), reverse = True)
         final_edges_id = mst_edges_id[(self.K - 1):]
 
         # Remove all edges from the graph, excpet the final edges

@@ -8,14 +8,17 @@ from .utils import P_Dict
 from ..utils import generate_dissimilarity_matrix
 
 
-_WORKER_GRAPH = None
+_WORKER_NUM_NODES = None
+_WORKER_EDGES = None
 _WORKER_DISS_WEIGHTS = None
 
 
 def _init_worker(num_nodes: int, edges: np.ndarray, diss_weights: np.ndarray):
-    global _WORKER_GRAPH
+    global _WORKER_NUM_NODES
+    global _WORKER_EDGES
     global _WORKER_DISS_WEIGHTS
-    _WORKER_GRAPH  = igraph.Graph(n = num_nodes, edges = edges.tolist())
+    _WORKER_NUM_NODES = num_nodes
+    _WORKER_EDGES = edges
     _WORKER_DISS_WEIGHTS = diss_weights
 
 
@@ -24,7 +27,7 @@ def chromosome_fitness_wrapper(chromosome: np.ndarray,
                                dissimilarity_matrix: np.ndarray,
                                num_edges: int, K: int) -> float:
     return mst_fitness(chromosome, dissimilarity_matrix, num_edges, K, 
-                       _WORKER_GRAPH, _WORKER_DISS_WEIGHTS) # type: ignore
+                       _WORKER_NUM_NODES, _WORKER_EDGES, _WORKER_DISS_WEIGHTS) # type: ignore
 
 
 
@@ -34,26 +37,26 @@ class MST_BRKGA(BRKGAPRegions):
                  dissimilarity_matrix: np.ndarray | None = None, **kwargs):
         
         # Graph basics
-        num_nodes = graph.vcount()
-        num_edges = graph.ecount()
-        edges = graph.get_edgelist()
+        num_nodes: int = graph.vcount()
+        num_edges: int = graph.ecount()
+        edges: np.ndarray = np.array(graph.get_edgelist())
 
         # Dissimilarity matrix
         if dissimilarity_matrix is None:
             dissimilarity_matrix = generate_dissimilarity_matrix(graph)
 
         # Dissimilarity weights
-        diss_weights = [dissimilarity_matrix[i, j] for i, j in edges]
-        diss_weights = np.array(diss_weights)
+        diss_weights: np.ndarray = np.array([dissimilarity_matrix[i, j] for i, j in edges])
 
         # Pool arguments
         init_worker_func = _init_worker
-        init_args = (num_nodes, np.array(edges), diss_weights)
+        init_args = (num_nodes, edges, diss_weights)
 
         # Sequential fitness
         fitness_seq = partial(mst_fitness, 
                               num_edges = num_edges, K = num_regions,
-                              G = graph, diss_weights = diss_weights)
+                              num_nodes = num_nodes, edges = edges,
+                              diss_weights = diss_weights)
 
         # Parallel fitness
         fitness_parallel = partial(chromosome_fitness_wrapper,
@@ -63,7 +66,8 @@ class MST_BRKGA(BRKGAPRegions):
         def decoder_func(chromosome: np.ndarray, diss_matrix: np.ndarray) -> P_Dict:
             P = mst_decoder(chromosome, diss_matrix,
                             num_edges = num_edges, K = num_regions,
-                            G = graph, diss_weights = diss_weights)
+                            num_nodes = num_nodes, edges = edges,
+                            diss_weights = diss_weights)
             return P
         
         # Create custom chromosomes (nothing spetial)
