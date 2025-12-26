@@ -4,7 +4,7 @@ import time
 
 
 instance = "20"
-num_regions = 10
+num_regions = 2
 graph, _, diss_matrix = get_mexican_instance_data(instance)
 
 

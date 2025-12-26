@@ -3,8 +3,8 @@ import numpy as np
 from functools import partial
 
 from .general_brkga import BRKGAPRegions
-from .Decoders.mst import mst_decoder, mst_fitness
-from .utils import P_Dict
+from .Decoders.mst import mst_fitness, mst_decoder
+from .utils import P_Dict, P_from_array_to_dict
 from ..utils import generate_dissimilarity_matrix
 
 
@@ -64,11 +64,11 @@ class MST_BRKGA(BRKGAPRegions):
 
         # Decoder
         def decoder_func(chromosome: np.ndarray, diss_matrix: np.ndarray) -> P_Dict:
-            P = mst_decoder(chromosome, diss_matrix,
+            p = mst_decoder(chromosome,
                             num_edges = num_edges, K = num_regions,
                             num_nodes = num_nodes, edges = edges,
                             diss_weights = diss_weights)
-            return P
+            return P_from_array_to_dict(p, num_regions)
         
         # Create custom chromosomes (nothing spetial)
         def chromosome_generator(size_pop: int) -> np.ndarray:

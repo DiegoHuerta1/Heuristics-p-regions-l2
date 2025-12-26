@@ -1,103 +1,66 @@
 import numpy as np
-import igraph
-
-from ..utils import P_Dict
-from ...utils import l2_objective_function_diss_matrix
 
 
-def mst_decoder_old(chromosome: np.ndarray, diss_matrix: np.ndarray,
-                num_edges: int, K: int,
-                G: igraph.Graph, diss_weights: np.ndarray,) -> P_Dict:
+# Union Find ---------------------------------
 
-    # Get two weights from the chromosome 
-    w_minus = chromosome[:num_edges] * diss_weights
-    w_plus = chromosome[num_edges:]
+def ds_find_root(ds_parents: np.ndarray, x: int) -> int:
+    """ Find the root of x""" 
+    parent = ds_parents[x]
+    while parent != x:
+        x = parent
+        parent = ds_parents[x]
+    return x
 
-    # Get edges from a minimum spanning tree using w_minus
-    mst_edges_id = G.spanning_tree(weights = w_minus, return_tree = False)
+def ds_find_root_pc(ds_parents: np.ndarray, x: int) -> int:
+    """ Find the root of x and use path compression""" 
+    parent = ds_parents[x]
+    while parent != x:
+        ds_parents[x] = ds_parents[parent] 
+        x = parent
+        parent = ds_parents[x]
+    return x
 
-    # Drop the first K-1 edges (considering the weights in w_plus)
-    mst_edges_id.sort(key = lambda e: w_plus[e], reverse = True)
-    final_edges_id = mst_edges_id[(K - 1):]
+def ds_connected(ds_parents: np.ndarray, x1: int, x2: int) -> bool:
+    """ Check if x1 and x2 are in the same component """
+    return ds_find_root_pc(ds_parents, x1) == ds_find_root_pc(ds_parents, x2)
 
-    # Remove all edges from the graph, excpet the final edges
-    edges_2_remove = set(range(num_edges)) - set(final_edges_id)
-    G_copy = G.copy()
-    G_copy.delete_edges(edges_2_remove)
+def ds_union(ds_parents: np.ndarray, ds_sizes: np.ndarray, x1: int, x2:int):
+    """ Connect x1 and x2 """
+    root1 = ds_find_root_pc(ds_parents, x1)
+    root2 = ds_find_root_pc(ds_parents, x2)
+    if root1 == root2:
+        return
+    tree1_size = ds_sizes[root1]
+    tree2_size = ds_sizes[root2]
+    # tree 1 is smaller, append to tree 2
+    if tree1_size <= tree2_size:
+        ds_parents[root1] = root2
+        ds_sizes[root2] += tree1_size
+    # tree 2 is smaller, append to tree 1
+    else:
+        ds_parents[root2] = root1
+        ds_sizes[root1] +=  tree2_size
 
-    # Make the partition using the connected components
-    components = G_copy.connected_components()
-    P = {idx+1: nodes for idx, nodes in enumerate(components)}
-    return P
+def ds_get_roots(ds_parents: np.ndarray, size: int) -> np.ndarray:
+    """ Get an array with all the roots """
+    roots = ds_parents.copy()
+    for x in range(size):
+        if x != roots[x]:
+            roots[x] = ds_find_root(ds_parents, x)
+    return roots    
 
 
-def mst_fitness_old(chromosome: np.ndarray, diss_matrix: np.ndarray,
-                num_edges: int, K: int,
-                G: igraph.Graph, diss_weights: np.ndarray,) -> float:
-    P = mst_decoder_old(chromosome, diss_matrix, num_edges, K, G, diss_weights)
-    return l2_objective_function_diss_matrix(P, diss_matrix)
+# Main function ----------------------------
 
 
-# -------------------------------------------------------
-
-import numpy as np
-
-class UnionFind:
-    def __init__(self, n):
-        self._size = n
-        self._parent = list(range(n))
-        self._sizes = [1] * n
-
-    def representative(self, id) -> int:
-        "Find root of the tree to which id is connected"
-        parent_id = self._parent[id]
-        if  parent_id == id:
-            return id 
-        else:
-            parent_repr = self.representative(parent_id)
-            self._parent[id] = parent_repr # Path compression
-            return parent_repr
-
-    def connected(self, id1, id2) -> bool:
-        "Are objects id1 and id2 connected?"
-        return self.representative(id1) == self.representative(id2)
-
-    def union(self, id1, id2):
-        "Connect objects id1 and id2."
-        root1 = self.representative(id1)
-        tree1_size = self._sizes[root1]
-        root2 = self.representative(id2)
-        tree2_size = self._sizes[root2]
-        # tree 1 is smaller, append to tree 2
-        if tree1_size <= tree2_size:
-            self._parent[root1] = root2
-            self._sizes[root2] = tree1_size + tree2_size
-        # tree 2 is smaller, append to tree 1
-        else:
-            self._parent[root2] = root1
-            self._sizes[root1] = tree1_size + tree2_size
-        
-
-    def components(self) -> list[list[int]]:
-        """
-        Return a list of connected components.
-        """
-        roots = [False] * self._size
-        components = [[k] for k in range(self._size)]
-        for k in range(self._size):
-            root_k = self.representative(k)
-            if root_k != k:
-                components[root_k].append(k)
-            else:
-                roots[k] = True
-        return [components[k] for k in range(self._size) if roots[k]]   
-    
-
-def mst_decoder(chromosome: np.ndarray, diss_matrix: np.ndarray,
-                num_edges: int, K: int,
-                num_nodes: int,
-                edges: np.ndarray,
-                diss_weights: np.ndarray):
+def mst_almost_decoder(chromosome: np.ndarray,
+                       num_edges: int, K: int,
+                       num_nodes: int,
+                       edges: np.ndarray,
+                       diss_weights: np.ndarray) -> np.ndarray:
+    """  
+    Get the roots array from the chromosome
+    """
     
     # Get two weights from the chromosome 
     w_minus: np.ndarray = chromosome[:num_edges] * diss_weights
@@ -108,23 +71,23 @@ def mst_decoder(chromosome: np.ndarray, diss_matrix: np.ndarray,
     edge_count: int = 0
 
     # Keep track of clusters while building the mst
-    ds = UnionFind(num_nodes)
+    ds_parents: np.ndarray = np.arange(num_nodes, dtype=np.int32)
+    ds_sizes: np.ndarray = np.ones(num_nodes, dtype=np.int32)
 
     # Greedy selection of the next edge
-    edges_idx_order = np.lexsort( (np.arange(num_edges, dtype=np.int64), w_minus))
+    edges_idx_order = np.argsort(w_minus, kind="mergesort") # mergesort performs lex sort
     for edge_idx in edges_idx_order:
         v1 = edges[edge_idx][0]
         v2 = edges[edge_idx][1]
 
         # Avoid cycles
-        if ds.connected(v1, v2):
+        if ds_connected(ds_parents, v1, v2):
             continue
 
         # Select this edge
         mst_edges[edge_idx] = 1
-        ds.union(v1, v2)
+        ds_union(ds_parents, ds_sizes, v1, v2)
         edge_count += 1
-
         # Mst complete
         if edge_count == num_nodes - 1:
             break
@@ -135,19 +98,42 @@ def mst_decoder(chromosome: np.ndarray, diss_matrix: np.ndarray,
     mst_edges[cut_edges] = 0
 
     # Construct a graph only with this edges
-    ds = UnionFind(num_nodes)
+    ds_parents: np.ndarray = np.arange(num_nodes, dtype=np.int32)
+    ds_sizes: np.ndarray = np.ones(num_nodes, dtype=np.int32)
     for edge_idx in range(num_edges):
         if mst_edges[edge_idx]:
             v1 = edges[edge_idx][0]
             v2 = edges[edge_idx][1]
-            ds.union(v1, v2)
+            ds_union(ds_parents, ds_sizes, v1, v2)
 
-    # Make the partition using the connected components
-    components = ds.components()
-    P = {idx+1: c for idx, c in enumerate(components)}
+    # Get the roots of the connected components
+    return ds_get_roots(ds_parents, num_nodes)
 
-    return P
 
+# Fitness -------------------------------------
+
+
+def l2_objective_from_roots(roots: np.ndarray, num_nodes: int, K:int,
+                            diss_matrix: np.ndarray) -> float:
+    region_sums: np.ndarray = np.zeros(num_nodes, dtype=np.float64)
+    region_counts: np.ndarray = np.zeros(num_nodes)
+
+    # Iterate on each pair of nodes 
+    for i in range(num_nodes):
+        r = roots[i]
+        # Add the size of the region
+        region_counts[r] += 1
+        for j in range(i + 1, num_nodes):
+            if roots[j] == r:
+                # Add the distance
+                region_sums[r] += diss_matrix[i, j]
+
+    # Add the total cost (divide each by the size)
+    total_cost = 0.0
+    for r in range(num_nodes):
+        if region_counts[r] > 0:
+            total_cost += region_sums[r] / region_counts[r]
+    return total_cost
 
 
 def mst_fitness(chromosome: np.ndarray, diss_matrix: np.ndarray,
@@ -155,11 +141,46 @@ def mst_fitness(chromosome: np.ndarray, diss_matrix: np.ndarray,
                 num_nodes: int,
                 edges: np.ndarray,
                 diss_weights: np.ndarray) -> float:
-    P = mst_decoder(chromosome, diss_matrix, num_edges, K, num_nodes, edges, diss_weights)
-    return l2_objective_function_diss_matrix(P, diss_matrix) # type: ignore
+    roots_array: np.ndarray = mst_almost_decoder(chromosome,
+                                                 num_edges, K, num_nodes,
+                                                 edges, diss_weights)
+    
+    return l2_objective_from_roots(roots_array, num_nodes, K, diss_matrix)
 
 
+# Decoder --------------------------------
 
+def relabel_components(roots: np.ndarray, num_nodes: int) -> np.ndarray:
+    """  
+    Relabel roots (arbitrary indices) to labels 0, 1, ...
+    """
+    mapping: np.ndarray = np.full(num_nodes, -1) # map from root to label
+    next_label = 0
+    labels = np.empty(num_nodes, dtype=np.int32)
+
+    # Iterate on each node
+    for i in range(num_nodes):
+        r = roots[i]
+        # Possibly add a new label
+        if mapping[r] == -1: 
+            mapping[r] = next_label
+            next_label += 1
+        # relabel root 
+        labels[i] = mapping[r]
+
+    return labels
+
+def mst_decoder(chromosome: np.ndarray, 
+                num_edges: int, K: int,
+                num_nodes: int,
+                edges: np.ndarray,
+                diss_weights: np.ndarray) -> np.ndarray:
+    
+    roots_array: np.ndarray = mst_almost_decoder(chromosome,
+                                                 num_edges, K, num_nodes,
+                                                 edges, diss_weights)
+    print(roots_array)
+    return relabel_components(roots_array, num_nodes)
 
 
 
