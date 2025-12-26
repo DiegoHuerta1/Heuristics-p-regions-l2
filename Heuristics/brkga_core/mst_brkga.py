@@ -73,6 +73,16 @@ class MST_BRKGA(BRKGAPRegions):
         # Create custom chromosomes (nothing spetial)
         def chromosome_generator(size_pop: int) -> np.ndarray:
             return np.random.rand(size_pop, num_edges * 2)
+        
+        # Select parallel vs sequential
+        parallel_arg = kwargs.get("parallel_brkga", True)
+        parallel: bool
+        if isinstance(parallel_arg, str) and parallel_arg.lower() == "auto":
+            parallel = True if num_nodes >= 100 else False
+        elif isinstance(parallel_arg, bool):
+            parallel = parallel_arg
+        else:
+            parallel = False
 
 
         # Parent constructor
@@ -83,6 +93,7 @@ class MST_BRKGA(BRKGAPRegions):
                          fitness_parallel = fitness_parallel,
                          decoder_func = decoder_func,
                          chromosome_generator = chromosome_generator,
+                         parallel = parallel,
                          dissimilarity_matrix = dissimilarity_matrix, **kwargs)
         
 

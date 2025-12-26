@@ -20,7 +20,7 @@ brkga_config = {
     "max_generations": 20000,
     "tolerance_generations": 200,
     "max_time": 18000,  
-    "parallel": True,
+    "parallel_brkga": "Auto",
     "num_workers": 4,
     "rank": 1,
     "verbose": 0,

@@ -30,7 +30,7 @@ def main():
         "max_generations": 1000,
         "tolerance_generations": 100,
         "max_time": 60,  
-        "parallel": False,
+        "parallel_brkga": "Auto",
         "num_workers": 4,
         "seed": 1,
         "verbose": 1

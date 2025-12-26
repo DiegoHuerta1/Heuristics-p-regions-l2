@@ -47,6 +47,7 @@ class BRKGAPRegions():
                  fitness_parallel: Fit_Par,
                  decoder_func: Decoder,
                  chromosome_generator: Callable[[int], np.ndarray],
+                 parallel: bool,
                  dissimilarity_matrix: np.ndarray, **kwargs):
         
         # Parameters for this specific BRKGA implementation
@@ -76,7 +77,6 @@ class BRKGAPRegions():
         self.offspring_size: int = self.p - self.p_e - self.p_m
 
         # Select one run method
-        parallel: bool = kwargs.get("parallel", True)
         if parallel:
             self.run = self.run_parallel
         else:
