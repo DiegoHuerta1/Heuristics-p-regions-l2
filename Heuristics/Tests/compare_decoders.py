@@ -6,7 +6,7 @@ import time
 
 
 def main():
-    instance = "07"
+    instance = "20"
     num_regions = 10
     graph, _, diss_matrix = get_mexican_instance_data(instance)
 
@@ -16,7 +16,7 @@ def main():
     from Heuristics.brkga_core.mst_brkga import MST_BRKGA
 
     # Draw a population
-    size_pop = 1000
+    size_pop = 100
     n = 2 * graph.ecount()
     pop = np.random.rand(size_pop, n)
 

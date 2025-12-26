@@ -1,8 +1,10 @@
 import numpy as np
+from numba import njit
 
 
 # Union Find ---------------------------------
 
+@njit(cache=True)
 def ds_find_root(ds_parents: np.ndarray, x: int) -> int:
     """ Find the root of x""" 
     parent = ds_parents[x]
@@ -11,6 +13,7 @@ def ds_find_root(ds_parents: np.ndarray, x: int) -> int:
         parent = ds_parents[x]
     return x
 
+@njit(cache=True)
 def ds_find_root_pc(ds_parents: np.ndarray, x: int) -> int:
     """ Find the root of x and use path compression""" 
     parent = ds_parents[x]
@@ -20,10 +23,12 @@ def ds_find_root_pc(ds_parents: np.ndarray, x: int) -> int:
         parent = ds_parents[x]
     return x
 
+@njit(cache=True)
 def ds_connected(ds_parents: np.ndarray, x1: int, x2: int) -> bool:
     """ Check if x1 and x2 are in the same component """
     return ds_find_root_pc(ds_parents, x1) == ds_find_root_pc(ds_parents, x2)
 
+@njit(cache=True)
 def ds_union(ds_parents: np.ndarray, ds_sizes: np.ndarray, x1: int, x2:int):
     """ Connect x1 and x2 """
     root1 = ds_find_root_pc(ds_parents, x1)
@@ -41,6 +46,7 @@ def ds_union(ds_parents: np.ndarray, ds_sizes: np.ndarray, x1: int, x2:int):
         ds_parents[root2] = root1
         ds_sizes[root1] +=  tree2_size
 
+@njit(cache=True)
 def ds_get_roots(ds_parents: np.ndarray, size: int) -> np.ndarray:
     """ Get an array with all the roots """
     roots = ds_parents.copy()
@@ -52,7 +58,7 @@ def ds_get_roots(ds_parents: np.ndarray, size: int) -> np.ndarray:
 
 # Main function ----------------------------
 
-
+@njit(cache=True)
 def mst_almost_decoder(chromosome: np.ndarray,
                        num_edges: int, K: int,
                        num_nodes: int,
@@ -112,7 +118,7 @@ def mst_almost_decoder(chromosome: np.ndarray,
 
 # Fitness -------------------------------------
 
-
+@njit(fastmath=True, cache=True)
 def l2_objective_from_roots(roots: np.ndarray, num_nodes: int, K:int,
                             diss_matrix: np.ndarray) -> float:
     region_sums: np.ndarray = np.zeros(num_nodes, dtype=np.float64)
@@ -135,7 +141,7 @@ def l2_objective_from_roots(roots: np.ndarray, num_nodes: int, K:int,
             total_cost += region_sums[r] / region_counts[r]
     return total_cost
 
-
+@njit(cache=True)
 def mst_fitness(chromosome: np.ndarray, diss_matrix: np.ndarray,
                 num_edges: int, K: int,
                 num_nodes: int,
@@ -150,6 +156,7 @@ def mst_fitness(chromosome: np.ndarray, diss_matrix: np.ndarray,
 
 # Decoder --------------------------------
 
+@njit(cache=True)
 def relabel_components(roots: np.ndarray, num_nodes: int) -> np.ndarray:
     """  
     Relabel roots (arbitrary indices) to labels 0, 1, ...
@@ -170,6 +177,7 @@ def relabel_components(roots: np.ndarray, num_nodes: int) -> np.ndarray:
 
     return labels
 
+@njit(cache=True)
 def mst_decoder(chromosome: np.ndarray, 
                 num_edges: int, K: int,
                 num_nodes: int,
@@ -179,7 +187,6 @@ def mst_decoder(chromosome: np.ndarray,
     roots_array: np.ndarray = mst_almost_decoder(chromosome,
                                                  num_edges, K, num_nodes,
                                                  edges, diss_weights)
-    print(roots_array)
     return relabel_components(roots_array, num_nodes)
 
 
