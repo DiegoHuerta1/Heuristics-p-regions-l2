@@ -9,29 +9,28 @@ graph, _, diss_matrix = get_mexican_instance_data(instance)
 
 
 # MST BRKGA ------------------------------------------------
-from Heuristics.brkga_core_deprecated.specific_brkga import MST_BRKGA as MST_BRKGA_old
-from Heuristics.brkga_core.mst_brkga import MST_BRKGA
+from Heuristics.brkga_core_deprecated.specific_brkga import ST_BRKGA as ST_BRKGA_old
+from Heuristics.brkga_core.st_brkga import ST_BRKGA
 
-
-np.random.seed(0)
 
 # Draw a population
 size_pop = 50
-n = 2 * graph.ecount()
+n = graph.ecount() + graph.vcount()
 pop = np.random.rand(size_pop, n)
 c = pop[5]
+c = np.array([0.5] * n)
 
 # Old
-brkga_old = MST_BRKGA_old(graph, num_regions, diss_matrix)
-P_old = brkga_old.decode(c)
-#fit_old = brkga_old.chromosome_fitness(c)
-#print(fit_old)
+brkga_old = ST_BRKGA_old(graph, num_regions, diss_matrix)
+#P_old = brkga_old.decode(c)
+fit_old = brkga_old.chromosome_fitness(c)
+print(fit_old)
 
 # New
-brkga = MST_BRKGA(graph, num_regions, diss_matrix)
-P_new = brkga.decoder_func(c, diss_matrix)
-#fit_new = brkga.fitness_seq(c, diss_matrix) 
-#print(fit_new)
+brkga = ST_BRKGA(graph, num_regions, diss_matrix)
+#P_new = brkga.decoder_func(c, diss_matrix)
+fit_new = brkga.fitness_seq(c, diss_matrix) 
+print(fit_new)
 
 
 

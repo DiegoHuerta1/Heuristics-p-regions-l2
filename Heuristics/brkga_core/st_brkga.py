@@ -4,28 +4,35 @@ from functools import partial
 import igraph
 
 from .general_brkga import BRKGAPRegions
-from .Decoders.st import st_decoder, st_fitness
-from .utils import P_Dict
+from .Decoders.st import st_fitness, st_decoder
+from .utils import build_adjacency_arrays_with_edges, P_from_array_to_dict, P_Dict
 from ..utils import generate_dissimilarity_matrix
 
 
-_WORKER_GRAPH = None
 _WORKER_DISS_WEIGHTS = None
+_WORKER_ADJ_OFFSETS = None
+_WORKER_ADJ_NEIG = None
+_WORKER_ADJ_EDGES = None
 
 
-def _init_worker(num_nodes: int, edges: np.ndarray, diss_weights: np.ndarray):
-    global _WORKER_GRAPH
+def _init_worker(diss_weights: np.ndarray, adj_offsets: np.ndarray,
+                adj_neighbors: np.ndarray, adj_edges: np.ndarray):
     global _WORKER_DISS_WEIGHTS
-    _WORKER_GRAPH  = igraph.Graph(n = num_nodes, edges = edges.tolist())
+    global _WORKER_ADJ_OFFSETS
+    global _WORKER_ADJ_NEIG
+    global _WORKER_ADJ_EDGES
     _WORKER_DISS_WEIGHTS = diss_weights
+    _WORKER_ADJ_OFFSETS = adj_offsets
+    _WORKER_ADJ_NEIG = adj_neighbors
+    _WORKER_ADJ_EDGES = adj_edges
 
 
 
-def chromosome_fitness_wrapper(chromosome: np.ndarray, 
-                               dissimilarity_matrix: np.ndarray,
-                               num_edges: int, K: int) -> float:
-    return st_fitness(chromosome, dissimilarity_matrix, num_edges, K, 
-                       _WORKER_GRAPH, _WORKER_DISS_WEIGHTS) # type: ignore
+def chromosome_fitness_wrapper(chromosome: np.ndarray, diss_matrix: np.ndarray,
+                               num_nodes: int, num_edges: int, K: int) -> float:
+    return st_fitness(chromosome, diss_matrix, num_nodes, num_edges, K,
+                      _WORKER_DISS_WEIGHTS, _WORKER_ADJ_OFFSETS, # type: ignore
+                      _WORKER_ADJ_NEIG, _WORKER_ADJ_EDGES) # type: ignore
 
 
 
@@ -37,7 +44,7 @@ class ST_BRKGA(BRKGAPRegions):
         # Graph basics
         num_nodes = graph.vcount()
         num_edges = graph.ecount()
-        edges = graph.get_edgelist()
+        edges: np.ndarray = np.array(graph.get_edgelist())
 
         # Dissimilarity matrix
         if dissimilarity_matrix is None:
@@ -47,25 +54,30 @@ class ST_BRKGA(BRKGAPRegions):
         diss_weights = [dissimilarity_matrix[i, j] for i, j in edges]
         diss_weights = np.array(diss_weights)
 
+        # Get adjacency arrays                             
+        adj_offsets, adj_neighbors, adj_edges = build_adjacency_arrays_with_edges(graph)
+
         # Pool arguments
         init_worker_func = _init_worker
-        init_args = (num_nodes, np.array(edges), diss_weights)
+        init_args = (diss_weights, adj_offsets, adj_neighbors, adj_edges)
 
         # Sequential fitness
         fitness_seq = partial(st_fitness, 
-                              num_edges = num_edges, K = num_regions,
-                              G = graph, diss_weights = diss_weights)
+                              num_nodes = num_nodes, num_edges = num_edges, K = num_regions,
+                              diss_weights = diss_weights, adj_offsets = adj_offsets,
+                              adj_neighbors = adj_neighbors, adj_edges = adj_edges)
 
         # Parallel fitness
         fitness_parallel = partial(chromosome_fitness_wrapper,
-                                   num_edges = num_edges, K = num_regions)
+                                   num_nodes = num_nodes, num_edges = num_edges, K = num_regions)
 
         # Decoder
         def decoder_func(chromosome: np.ndarray, diss_matrix: np.ndarray) -> P_Dict:
-            P = st_decoder(chromosome, diss_matrix,
-                           num_edges = num_edges, K = num_regions,
-                           G = graph, diss_weights = diss_weights)
-            return P
+            p = st_decoder(chromosome, diss_matrix,
+                           num_nodes = num_nodes, num_edges = num_edges, K = num_regions,
+                           diss_weights = diss_weights, adj_offsets = adj_offsets,
+                           adj_neighbors = adj_neighbors, adj_edges = adj_edges)
+            return P_from_array_to_dict(p, num_regions)
         
         # Create custom chromosomes (nothing spetial)
         def chromosome_generator(size_pop: int) -> np.ndarray:

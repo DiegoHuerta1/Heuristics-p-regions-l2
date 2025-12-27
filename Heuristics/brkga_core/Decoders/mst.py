@@ -122,7 +122,7 @@ def mst_almost_decoder(chromosome: np.ndarray,
 def l2_objective_from_roots(roots: np.ndarray, num_nodes: int, K:int,
                             diss_matrix: np.ndarray) -> float:
     region_sums: np.ndarray = np.zeros(num_nodes, dtype=np.float64)
-    region_counts: np.ndarray = np.zeros(num_nodes)
+    region_counts: np.ndarray = np.zeros(num_nodes, dtype=np.int32)
 
     # Iterate on each pair of nodes 
     for i in range(num_nodes):

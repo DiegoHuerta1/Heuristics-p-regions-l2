@@ -152,7 +152,9 @@ class ST_BRKGA(GenericBRKGA):
         # Get edge weigths from the first part
         edge_weigths = chromosome[:self.M] * self.diss_weights
         # Get K seed nodes from the second part (lowest values)
-        seed_nodes = np.argsort(chromosome[self.M:])[:self.K]
+        x = chromosome[self.M:]
+        order = np.argsort(x, kind="mergesort")
+        seed_nodes = order[:self.K]
 
         # run dijkstra from each seed node
         dist_from_seeds = self.G.distances(source = seed_nodes,
@@ -166,7 +168,8 @@ class ST_BRKGA(GenericBRKGA):
             distances = {(idx+1): dist_from_seeds[idx][node]
                          for idx in range(self.K)}
             # select the closest 
-            k_star = min(distances, key = lambda k: (distances[k], k))
+            k_star = min(distances, key = lambda k: (distances[k],
+                                                     self.dissimilarity_matrix[node, seed_nodes[k-1]]))
             P[k_star].append(node)
 
         return P

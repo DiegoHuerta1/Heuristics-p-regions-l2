@@ -11,62 +11,62 @@ def main():
     graph, _, diss_matrix = get_mexican_instance_data(instance)
 
 
-    # MST BRKGA ------------------------------------------------
-    from Heuristics.brkga_core_deprecated.specific_brkga import MST_BRKGA as MST_BRKGA_old
-    from Heuristics.brkga_core.mst_brkga import MST_BRKGA
-
-    # Draw a population
-    size_pop = 100
-    n = 2 * graph.ecount()
-    pop = np.random.rand(size_pop, n)
-
-    # Old
-    brkga_old = MST_BRKGA_old(graph, num_regions, diss_matrix)
-    start_time_old  = time.time()
-    fit_old = np.array([brkga_old.chromosome_fitness(c) for c in pop])
-    time_old = time.time() - start_time_old
-
-    # New
-    brkga = MST_BRKGA(graph, num_regions, diss_matrix)
-    start_time_new  = time.time()
-    fit_new = np.array([brkga.fitness_seq(c, diss_matrix) for c in pop])
-    time_new = time.time() - start_time_new
-
-    # Compare
-    print("MST BRKGA")
-    print(f"Old time: {time_old:.4f} seconds")
-    print(f"New time: {time_new:.4f} seconds")
-    if np.allclose(fit_old, fit_new):
-        print("Fitness values match!")
-
-
-    # # ST BRKGA ------------------------------------------------
-    # from Heuristics.brkga_core_deprecated.specific_brkga import ST_BRKGA as ST_BRKGA_old
-    # from Heuristics.brkga_core.st_brkga import ST_BRKGA
+    # # MST BRKGA ------------------------------------------------
+    # from Heuristics.brkga_core_deprecated.specific_brkga import MST_BRKGA as MST_BRKGA_old
+    # from Heuristics.brkga_core.mst_brkga import MST_BRKGA
 
     # # Draw a population
-    # size_pop = 500
-    # n = graph.ecount() + graph.vcount()
+    # size_pop = 100
+    # n = 2 * graph.ecount()
     # pop = np.random.rand(size_pop, n)
 
     # # Old
-    # brkga_old = ST_BRKGA_old(graph, num_regions, diss_matrix)
+    # brkga_old = MST_BRKGA_old(graph, num_regions, diss_matrix)
     # start_time_old  = time.time()
-    # fit_old = [brkga_old.chromosome_fitness(c) for c in pop]
+    # fit_old = np.array([brkga_old.chromosome_fitness(c) for c in pop])
     # time_old = time.time() - start_time_old
 
     # # New
-    # brkga = ST_BRKGA(graph, num_regions, diss_matrix)
+    # brkga = MST_BRKGA(graph, num_regions, diss_matrix)
     # start_time_new  = time.time()
-    # fit_new = [brkga.fitness_seq(c, diss_matrix) for c in pop]
+    # fit_new = np.array([brkga.fitness_seq(c, diss_matrix) for c in pop])
     # time_new = time.time() - start_time_new
 
     # # Compare
-    # print("ST BRKGA")
+    # print("MST BRKGA")
     # print(f"Old time: {time_old:.4f} seconds")
     # print(f"New time: {time_new:.4f} seconds")
     # if np.allclose(fit_old, fit_new):
-    #   print("Fitness values match!")
+    #     print("Fitness values match!")
+
+
+    # ST BRKGA ------------------------------------------------
+    from Heuristics.brkga_core_deprecated.specific_brkga import ST_BRKGA as ST_BRKGA_old
+    from Heuristics.brkga_core.st_brkga import ST_BRKGA
+
+    # Draw a population
+    size_pop = 500
+    n = graph.ecount() + graph.vcount()
+    pop = np.random.rand(size_pop, n)
+
+    # Old
+    brkga_old = ST_BRKGA_old(graph, num_regions, diss_matrix)
+    start_time_old  = time.time()
+    fit_old = [brkga_old.chromosome_fitness(c) for c in pop]
+    time_old = time.time() - start_time_old
+
+    # New
+    brkga = ST_BRKGA(graph, num_regions, diss_matrix)
+    start_time_new  = time.time()
+    fit_new = [brkga.fitness_seq(c, diss_matrix) for c in pop]
+    time_new = time.time() - start_time_new
+
+    # Compare
+    print("ST BRKGA")
+    print(f"Old time: {time_old:.4f} seconds")
+    print(f"New time: {time_new:.4f} seconds")
+    if np.allclose(fit_old, fit_new):
+      print("Fitness values match!")
 
 
     # # Greedy BRKGA ------------------------------------------------

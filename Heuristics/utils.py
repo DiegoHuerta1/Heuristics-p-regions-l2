@@ -40,7 +40,6 @@ def l2_objective_function_diss_matrix(P: dict[int, list[int]], diss_matrix: np.n
     using the pre computed dissimilarity matrix
 
     Args:
-        graph (igraph.Graph): Graph instance
         P (dict[int, list[int]]): Partition of the graph
         diss_matrix (np.ndarray): Dissimilarity matrix
 
