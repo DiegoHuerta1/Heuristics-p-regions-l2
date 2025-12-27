@@ -168,8 +168,7 @@ class ST_BRKGA(GenericBRKGA):
             distances = {(idx+1): dist_from_seeds[idx][node]
                          for idx in range(self.K)}
             # select the closest 
-            k_star = min(distances, key = lambda k: (distances[k],
-                                                     self.dissimilarity_matrix[node, seed_nodes[k-1]]))
+            k_star = min(distances, key = lambda k: (distances[k], seed_nodes[k-1]))
             P[k_star].append(node)
 
         return P

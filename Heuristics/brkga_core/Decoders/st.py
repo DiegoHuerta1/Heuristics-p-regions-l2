@@ -1,29 +1,105 @@
 import numpy as np
 
+# Binary Heap --------------------------
+# The root element will be at arr[0]
+# arr[(i-1)//2]	Returns the parent node
+# arr[(2*i)+1]	Returns the left child node
+# arr[(2*i)+2]	Returns the right child node
+
+def heap_push(heap_dist: np.ndarray, heap_node: np.ndarray, heap_size: int,
+              dist_v: float, v: int) -> int:
+    # start at the end
+    idx_new = heap_size
+    parent_index = (idx_new - 1) // 2
+
+    # Climb if the parent is greater
+    while idx_new > 0 and heap_dist[(idx_new - 1)//2] > dist_v:
+        heap_dist[idx_new] = heap_dist[parent_index]
+        heap_node[idx_new] = heap_node[parent_index]
+        # update index
+        idx_new = parent_index
+        parent_index = (idx_new - 1) // 2
+
+    # insert the new value at this index
+    heap_dist[idx_new] = dist_v
+    heap_node[idx_new] = v
+
+    return heap_size + 1
+
+
+def heap_pop(heap_dist: np.ndarray, heap_node: np.ndarray,
+            heap_size: int) -> tuple[float, int, int]:
+    # Retrieve the min value
+    min_value = heap_dist[0]
+    u = heap_node[0]
+
+    # Replace the root of the heap with the last element
+    heap_size = heap_size - 1
+    last_dist = heap_dist[heap_size]
+    last_node = heap_node[heap_size]
+
+    # Start at the begining
+    idx: int = 0
+    left_child_idx: int = 2 * idx + 1
+    right_child_idx: int 
+    child_idx: int
+
+
+    # if there are valid childs
+    while left_child_idx < heap_size:
+        right_child_idx = left_child_idx + 1
+
+        # select right
+        if right_child_idx < heap_size and heap_dist[right_child_idx] < heap_dist[left_child_idx]:
+            child_idx = right_child_idx
+        # select left
+        else:
+            child_idx = left_child_idx
+
+        # check if we do need to move
+        if last_dist <= heap_dist[child_idx]:
+            break
+
+        # move to the child
+        heap_dist[idx] = heap_dist[child_idx]
+        heap_node[idx] = heap_node[child_idx]
+        idx = child_idx
+        left_child_idx = 2 * idx + 1
+            
+    # Insert the last element in the correct position
+    heap_dist[idx] = last_dist
+    heap_node[idx] = last_node
+
+    return min_value, u, heap_size
+
+
+
 # Dijkstra -------------------------------------
 
-import heapq
 def multi_source_dijkstra(seed_nodes: np.ndarray, w: np.ndarray,
-                           num_nodes: int, diss_matrix: np.ndarray,
+                           num_nodes: int,  num_edges: int, diss_matrix: np.ndarray,
                           adj_offsets: np.ndarray, adj_neighbors: np.ndarray,
                           adj_edges: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        
     # Keep track of min dist and the seed that leads to that minimum
     min_dist: np.ndarray = np.full(num_nodes, np.inf, dtype=np.float64)
     seed: np.ndarray = np.full(num_nodes, -1, dtype=np.int32)
 
-    # Initialize priority queue empty
-    pq = []
+    # Initialize binary heap for pairs (dist_v, v)
+    max_heap_size: int = len(adj_neighbors) # num_edges
+    heap_dist: np.ndarray = np.empty(max_heap_size, dtype=np.float64)
+    heap_node: np.ndarray = np.empty(max_heap_size, dtype=np.int32)
+    heap_size: int = 0
 
     # Initialize each seed node
     for s in seed_nodes:
         min_dist[s] = 0.0
         seed[s] = s
-        heapq.heappush(pq, (0.0, s))
+        # Push in heap: heapq.heappush(pq, (0.0, s))
+        heap_size = heap_push(heap_dist, heap_node, heap_size, 0.0, s)
 
-    # Pop an element
-    while len(pq) > 0:
-        dist_u, u = heapq.heappop(pq)
+    while heap_size > 0:
+        # Pop an element: dist_u, u = heapq.heappop(pq)
+        dist_u, u, heap_size = heap_pop(heap_dist, heap_node, heap_size)        
 
         # if we already computed a better path
         if min_dist[u] < dist_u:
@@ -32,15 +108,15 @@ def multi_source_dijkstra(seed_nodes: np.ndarray, w: np.ndarray,
         # for each neighbor v of u
         for idx in range(adj_offsets[u], adj_offsets[u + 1]):
             v = adj_neighbors[idx]
-            edge_id = adj_edges[idx]
+            edge_id: int = adj_edges[idx]
 
             # check if we can improve the distance
             new_dist_v = dist_u + w[edge_id]
-            if (new_dist_v < min_dist[v]) or (new_dist_v == min_dist[v] and diss_matrix[seed[u], v] < diss_matrix[seed[v], v]):
+            if (new_dist_v < min_dist[v]) or (new_dist_v == min_dist[v] and seed[u] < seed[v]):
                 min_dist[v] = new_dist_v
                 seed[v] = seed[u]
-                # push 
-                heapq.heappush(pq, (new_dist_v, v))
+                # push: heapq.heappush(pq, (new_dist_v, v))
+                heap_size = heap_push(heap_dist, heap_node, heap_size, new_dist_v, v)
 
     return min_dist, seed
 
@@ -63,8 +139,9 @@ def st_almost_decoder(chromosome: np.ndarray, diss_matrix: np.ndarray,
 
     # Run multi source dijkstra
     _, seeds = multi_source_dijkstra(seed_nodes,w, num_nodes,
-                                    diss_matrix, adj_offsets, 
-                                    adj_neighbors, adj_edges)
+                                     num_edges, diss_matrix,
+                                     adj_offsets, adj_neighbors,
+                                     adj_edges)
     return seeds
 
 
