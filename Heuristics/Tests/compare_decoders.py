@@ -16,7 +16,7 @@ def main():
     from Heuristics.brkga_core.mst_brkga import MST_BRKGA
 
     # Draw a population
-    size_pop = 100
+    size_pop = 500
     n = 2 * graph.ecount()
     pop = np.random.rand(size_pop, n)
 
@@ -34,6 +34,7 @@ def main():
 
     # Compare
     print("MST BRKGA")
+    print(f"Population of size {len(pop)}")
     print(f"Old time: {time_old:.4f} seconds")
     print(f"New time: {time_new:.4f} seconds")
     if np.allclose(fit_old, fit_new):
@@ -63,6 +64,7 @@ def main():
 
     # Compare
     print("ST BRKGA")
+    print(f"Population of size {len(pop)}")
     print(f"Old time: {time_old:.4f} seconds")
     print(f"New time: {time_new:.4f} seconds")
     if np.allclose(fit_old, fit_new):
@@ -76,7 +78,7 @@ def main():
 
     # Draw a population
     rank = 1
-    size_pop = 100
+    size_pop = 500
     n = graph.vcount() * rank + graph.vcount()
     pop = np.random.rand(size_pop, n)
 
@@ -97,6 +99,7 @@ def main():
 
     # Compare
     print("Greedy BRKGA")
+    print(f"Population of size {len(pop)}")
     print(f"Old time: {time_old:.4f} seconds")
     print(f"New time: {time_new:.4f} seconds")
     if np.allclose(fit_old, fit_new):

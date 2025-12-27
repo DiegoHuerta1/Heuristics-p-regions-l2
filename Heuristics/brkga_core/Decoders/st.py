@@ -1,4 +1,5 @@
 import numpy as np
+from numba import njit
 
 # Binary Heap --------------------------
 # The root element will be at arr[0]
@@ -6,6 +7,7 @@ import numpy as np
 # arr[(2*i)+1]	Returns the left child node
 # arr[(2*i)+2]	Returns the right child node
 
+@njit(cache=True)
 def heap_push(heap_dist: np.ndarray, heap_node: np.ndarray, heap_size: int,
               dist_v: float, v: int) -> int:
     # start at the end
@@ -26,7 +28,7 @@ def heap_push(heap_dist: np.ndarray, heap_node: np.ndarray, heap_size: int,
 
     return heap_size + 1
 
-
+@njit(cache=True)
 def heap_pop(heap_dist: np.ndarray, heap_node: np.ndarray,
             heap_size: int) -> tuple[float, int, int]:
     # Retrieve the min value
@@ -76,6 +78,7 @@ def heap_pop(heap_dist: np.ndarray, heap_node: np.ndarray,
 
 # Dijkstra -------------------------------------
 
+@njit(cache=True)
 def multi_source_dijkstra(seed_nodes: np.ndarray, w: np.ndarray,
                            num_nodes: int,  num_edges: int, diss_matrix: np.ndarray,
                           adj_offsets: np.ndarray, adj_neighbors: np.ndarray,
@@ -123,7 +126,7 @@ def multi_source_dijkstra(seed_nodes: np.ndarray, w: np.ndarray,
 
 # Main function -------------------------------
 
-
+@njit(cache=True)
 def st_almost_decoder(chromosome: np.ndarray, diss_matrix: np.ndarray,
                       num_nodes: int, num_edges: int, K: int,
                       diss_weights: np.ndarray, adj_offsets: np.ndarray,
@@ -147,6 +150,7 @@ def st_almost_decoder(chromosome: np.ndarray, diss_matrix: np.ndarray,
 
 # Fitness -------------------------------------
 
+@njit(fastmath=True, cache=True)
 def l2_objective_from_seeds(seeds: np.ndarray, num_nodes: int,
                             diss_matrix: np.ndarray) -> float:
     
@@ -171,6 +175,7 @@ def l2_objective_from_seeds(seeds: np.ndarray, num_nodes: int,
     return total_cost
 
 
+@njit(cache=True)
 def st_fitness(chromosome: np.ndarray, diss_matrix: np.ndarray,
                num_nodes: int, num_edges: int, K: int,
                diss_weights: np.ndarray, adj_offsets: np.ndarray,
@@ -184,7 +189,7 @@ def st_fitness(chromosome: np.ndarray, diss_matrix: np.ndarray,
 
 # Decoder --------------------------------
 
-
+@njit(cache=True)
 def relabel_components(seeds: np.ndarray, num_nodes: int) -> np.ndarray:
     """  
     Relabel seeds (arbitrary indices) to labels 0, 1, ...
@@ -205,7 +210,7 @@ def relabel_components(seeds: np.ndarray, num_nodes: int) -> np.ndarray:
 
     return labels
 
-
+@njit(cache=True)
 def st_decoder(chromosome: np.ndarray, diss_matrix: np.ndarray,
                num_nodes: int, num_edges: int, K: int,
                diss_weights: np.ndarray, adj_offsets: np.ndarray,
