@@ -1,5 +1,8 @@
 import matplotlib
+import argparse
 matplotlib.use("Agg")
+import os
+os.environ["PYTHONWARNINGS"] = "ignore:resource_tracker:UserWarning"
 from Heuristics import Batch_Execution
 
 
@@ -9,18 +12,18 @@ from Heuristics import Batch_Execution
 
 data_folder = "Instances_Mexico/"
 output_folder = "Results_Mexico/"
-heuristics = [] 
-repetitions = 20
+heuristics = [] # all heuristics
+repetitions = 30
 
 brkga_config = {
-    "population_size": 1.0,
+    "population_size": 1.0,  # equal to the number of genes
     "elite_fraction": 0.2,
     "mutant_fraction": 0.2,
     "crossover_rate": 0.7,
-    "max_generations": 20000,
-    "tolerance_generations": 200,
-    "max_time": 18000,  
-    "parallel_brkga": "Auto",
+    "max_generations": 1000000,
+    "tolerance_generations": 400,
+    "max_time": 18000,        # 5 hours 
+    "parallel_brkga": "Auto", # parallel if num_nodes >= 100
     "num_workers": 4,
     "rank": 1,
     "verbose": 0,
@@ -57,7 +60,20 @@ def main():
         repetitions = repetitions
     )
     model.print_initial_information()
-    model.run(max_time = 10000)  
+
+    # Time argument --max_time
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--max_time",
+        type = int,
+        default = 3600,
+        help="Maximum time"
+    )
+    args = parser.parse_args()
+    max_time = args.max_time
+
+    # Run
+    model.run(max_time = max_time)  
 
 
     # ================================================

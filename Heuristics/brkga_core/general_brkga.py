@@ -65,6 +65,7 @@ class BRKGAPRegions():
         population_size = kwargs.get("population_size", 200)
         if isinstance(population_size, float):
             self.p = int(population_size * self.n)
+            self.p = min( max(self.p, 50), 5000) # p in [50, 5000]
         else:
             self.p = population_size
         elite_fraction = kwargs.get("elite_fraction", 0.2)
