@@ -115,7 +115,7 @@ class ResultPlotter:
                     fontsize=12
                 )
 
-        plt.title(f"{variable} distribution - {self.name}")
+        plt.title(f"{variable} average - {self.name}")
         plt.savefig(folder + f"{self.name}__{variable}.png", bbox_inches='tight')
         plt.close()
 
