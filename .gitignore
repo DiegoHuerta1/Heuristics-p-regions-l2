@@ -4,6 +4,7 @@
 __pycache__/
 
 Example_plots/
+Results_Mexico/
 .hypothesis/
 .pytest_cache/
 .venv/

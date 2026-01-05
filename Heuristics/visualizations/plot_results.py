@@ -104,7 +104,7 @@ class ResultPlotter:
 
         # Annotations
         for ax in g.axes.flat:
-            for p in ax.patches:
+            for p in ax.patches[:-1]:
                 height = p.get_height()
                 ax.text(
                     p.get_x() + p.get_width() / 2,
