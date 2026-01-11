@@ -1,5 +1,9 @@
+import matplotlib
+matplotlib.use("Agg")
+import os
+os.environ["PYTHONWARNINGS"] = "ignore:resource_tracker:UserWarning"
 from Heuristics.utils import generate_dissimilarity_matrix
-from Heuristics import MST_BRKGA, ST_BRKGA, Greedy_BRKGA
+from Heuristics import MST_BRKGA, MSF_BRKGA, ST_BRKGA, Greedy_BRKGA
 import igraph
 import os
 
@@ -7,7 +11,7 @@ import os
 def main():   
  
     # Define instance
-    instance_path = "./Instances_Mexico/05.pkl"
+    instance_path = "./Instances_Mexico/07.pkl"
     plots_path = "./Example_plots/"
     os.makedirs(plots_path, exist_ok=True)
     num_regions = 10
@@ -23,13 +27,13 @@ def main():
     
     # BRKGA parameters
     config = {
-        "population_size": 100,
-        "elite_fraction": 0.2,
+        "population_size": 2.0,
+        "elite_fraction": 0.1,
         "mutant_fraction": 0.2,
         "crossover_rate": 0.7,
-        "max_generations": 1000,
-        "tolerance_generations": 100,
-        "max_time": 60,  
+        "max_generations": 100000,
+        "tolerance_generations": 400,
+        "max_time": 600,  
         "parallel_brkga": "Auto",
         "num_workers": 4,
         "seed": 1,
@@ -45,6 +49,14 @@ def main():
     brkga.print_statistics()
     brkga.plot_evolution(plots_path + "mst_brkga_evolution.png")  
 
+    # Apply a MSF BRKGA  ------------------------------------------------
+    print("-"*100)
+    print("MSF BRKGA \n")
+    brkga = MSF_BRKGA(graph, num_regions, diss_matrix, **config)
+    brkga.run()
+    brkga.print_statistics()
+    brkga.plot_evolution(plots_path + "msf_brkga_evolution.png")  
+
 
     # Apply a ST BRKGA  ------------------------------------------------
     print("-"*100)
@@ -58,7 +70,7 @@ def main():
     # Apply a Greedy BRKGA  ------------------------------------------------
     print("-"*100)
     print("Greedy BRKGA\n")
-    brkga = Greedy_BRKGA(graph, num_regions, diss_matrix, rank = 3, **config)
+    brkga = Greedy_BRKGA(graph, num_regions, diss_matrix, rank = 1, **config)
     brkga.run()
     brkga.print_statistics()
     brkga.plot_evolution(plots_path + "greedy_brkga_evolution.png")

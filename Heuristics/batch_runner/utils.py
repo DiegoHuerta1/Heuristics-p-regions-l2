@@ -4,6 +4,7 @@ import pandas as pd
 
 brkga_heuristics_list = [
     "mst_brkga",
+    "msf_brkga",
     "st_brkga",
     "greedy_brkga",
 ]
@@ -16,6 +17,9 @@ pygeoda_heuristics_list = [
     "azp_tabu"
 ]
 all_heuristics_list = brkga_heuristics_list + pygeoda_heuristics_list
+
+
+
                   
 
 def run_brkga_heuristic(brkga_class, name, graph, num_regions, diss_matrix,

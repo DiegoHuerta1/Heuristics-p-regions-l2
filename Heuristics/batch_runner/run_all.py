@@ -9,6 +9,7 @@ import json
 
 from ..utils import generate_dissimilarity_matrix, igraph_to_gdf
 from ..brkga_core.mst_brkga import MST_BRKGA
+from ..brkga_core.msf_brkga import MSF_BRKGA
 from ..brkga_core.st_brkga import ST_BRKGA
 from ..brkga_core.greedy_brkga import Greedy_BRKGA
 from .utils import all_heuristics_list, run_brkga_heuristic, run_pygeoda_heuristic
@@ -32,6 +33,7 @@ def run_all_on_graph(graph: igraph.Graph, num_regions: int,
         diss_matrix (None | np.ndarray, optional): Dissimilarity matrix. Defaults to None.
         heuristics (list[str], optional): List of methods to run. Empty list implies all methods.
                                         Options: ["mst_brkga",
+                                                  "msf_brkga",
                                                   "st_brkga",
                                                   "greedy_brkga",
                                                   "skater",
@@ -85,6 +87,7 @@ def run_all_on_graph(graph: igraph.Graph, num_regions: int,
 
     brkga_methods = {
         "mst_brkga": MST_BRKGA,
+        "msf_brkga": MSF_BRKGA,
         "st_brkga": ST_BRKGA,
         "greedy_brkga": Greedy_BRKGA,
     }
@@ -104,7 +107,6 @@ def run_all_on_graph(graph: igraph.Graph, num_regions: int,
             partial_results = {"metrics": dict_results, "partitions": dict_partitions}
             with open(partial_path, "w") as f:
                 json.dump(partial_results, f)
-
             # Check max time
             elapsed_time = time.time() - start_time
             if elapsed_time >= max_time:
@@ -148,7 +150,6 @@ def run_all_on_graph(graph: igraph.Graph, num_regions: int,
             partial_results = {"metrics": dict_results, "partitions": dict_partitions}
             with open(partial_path, "w") as f:
                 json.dump(partial_results, f)
-
             # Check max time
             elapsed_time = time.time() - start_time
             if elapsed_time >= max_time:
