@@ -415,5 +415,22 @@ class BRKGAPRegions():
             plt.show()
         plt.close()
 
+    # --------------------------------------------------------------------
+    # Local search on the best solution
 
+    def ls_improvement(self, graph):
+        """ 
+        Apply local search improvement to the best solution found by the BRKGA
+        """
+        from ..LS.local_seach import local_search_from_solution, LS_Stats
+
+        # Perfrom local search
+        P = self.evolution_stats["best_solution"]
+        self.ls_stats: LS_Stats = local_search_from_solution(graph, P, self.dissimilarity_matrix)
+        # Inform
+        self.print_general_info(f"Local Search Improvement:", level = 1)
+        self.print_general_info(f"\tInitial fitness: {self.evolution_stats['best_fitness']:.6f}", level = 1)
+        self.print_general_info(f"\tFinal fitness: {self.ls_stats['f_P']:.6f}", level = 1)
+        self.print_general_info(f"\tNumber of iterations: {len(self.ls_stats['historial_f']) -1 }", level = 1)
+        self.print_general_info(f"\tLS Time: {self.ls_stats['time']:.6f} seconds", level = 1)
 

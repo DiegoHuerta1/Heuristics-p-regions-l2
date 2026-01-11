@@ -10,10 +10,10 @@ from Heuristics import Batch_Execution
 # PARAMETERS
 # ================================================
 
-data_folder = "Instances_Mexico/"
-output_folder = "Results_Mexico/"
+data_folder = "Instances_Mexico_80/" #"Instances_Mexico/"
+output_folder = "Results_Mexico_80/"  # "Results_Mexico/"
 heuristics = [] # all heuristics
-repetitions = 30
+repetitions = 10
 
 brkga_config = {
     "population_size": 1.0,  # equal to the number of genes

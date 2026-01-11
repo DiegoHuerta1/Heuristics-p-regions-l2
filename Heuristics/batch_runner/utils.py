@@ -40,6 +40,12 @@ def run_brkga_heuristic(brkga_class, name, graph, num_regions, diss_matrix,
     dict_results[f"{name}__last_gen"] = stats['population_stats'].index.max()
     # Chromosome length
     dict_results[f"{name}__c_len"] = model.n
+    # Local Search improvement
+    model.ls_improvement(graph)
+    ls_stats = model.ls_stats
+    dict_results[f"{name}__f_ls"] = ls_stats['f_P']
+    dict_results[f"{name}__time_ls"] = ls_stats['time']
+    dict_results[f"{name}__iterations_ls"] = len(ls_stats['historial_f']) - 1
     # Partition
     dict_partitions[name] = stats["best_solution"]
 

@@ -1,0 +1,5 @@
+{
+    "redcap__method": "fullorder-averagelinkage",
+    "schc__linkage_method": "complete",
+    "azp_tabu__tabu_length": 10
+}

@@ -27,11 +27,11 @@ def main():
     
     # BRKGA parameters
     config = {
-        "population_size": 2.0,
+        "population_size": 1.0,
         "elite_fraction": 0.1,
         "mutant_fraction": 0.2,
         "crossover_rate": 0.7,
-        "max_generations": 100000,
+        "max_generations": 1000000,
         "tolerance_generations": 400,
         "max_time": 600,  
         "parallel_brkga": "Auto",
@@ -48,6 +48,7 @@ def main():
     brkga.run()
     brkga.print_statistics()
     brkga.plot_evolution(plots_path + "mst_brkga_evolution.png")  
+    brkga.ls_improvement(graph)
 
     # Apply a MSF BRKGA  ------------------------------------------------
     print("-"*100)
@@ -56,6 +57,7 @@ def main():
     brkga.run()
     brkga.print_statistics()
     brkga.plot_evolution(plots_path + "msf_brkga_evolution.png")  
+    brkga.ls_improvement(graph)
 
 
     # Apply a ST BRKGA  ------------------------------------------------
@@ -65,6 +67,7 @@ def main():
     brkga.run()
     brkga.print_statistics()
     brkga.plot_evolution(plots_path + "st_brkga_evolution.png")
+    brkga.ls_improvement(graph)
 
 
     # Apply a Greedy BRKGA  ------------------------------------------------
@@ -74,6 +77,7 @@ def main():
     brkga.run()
     brkga.print_statistics()
     brkga.plot_evolution(plots_path + "greedy_brkga_evolution.png")
+    brkga.ls_improvement(graph)
 
 
 if __name__ == "__main__":

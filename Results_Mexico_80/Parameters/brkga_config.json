@@ -1,0 +1,13 @@
+{
+    "population_size": 1.0,
+    "elite_fraction": 0.2,
+    "mutant_fraction": 0.2,
+    "crossover_rate": 0.7,
+    "max_generations": 1000000,
+    "tolerance_generations": 400,
+    "max_time": 18000,
+    "parallel_brkga": "Auto",
+    "num_workers": 10,
+    "rank": 1,
+    "verbose": 0
+}
