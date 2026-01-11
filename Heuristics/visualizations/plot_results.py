@@ -81,6 +81,7 @@ class ResultPlotter:
         """
         plt.figure(figsize=(12, 6))
         sns.boxplot(data = df_plot, x="Heuristic", y= variable, hue = "K")
+        plt.grid(axis="y", linestyle="--", alpha=0.5)
         plt.title(f"{variable} distribution - {self.name}")
         plt.xticks(rotation=45)
         plt.tight_layout()

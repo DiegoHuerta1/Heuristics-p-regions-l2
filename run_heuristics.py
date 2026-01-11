@@ -24,7 +24,7 @@ brkga_config = {
     "tolerance_generations": 400,
     "max_time": 18000,        # 5 hours 
     "parallel_brkga": "Auto", # parallel if num_nodes >= 100
-    "num_workers": 10,
+    "num_workers": 4,
     "rank": 1,
     "verbose": 0,
 }
@@ -73,7 +73,7 @@ def main():
     max_time = args.max_time
 
     # Run
-    model.run(max_time = max_time)  
+    #model.run(max_time = max_time)  
 
 
     # ================================================
@@ -82,6 +82,7 @@ def main():
 
     heuristics_to_analyze = [
     "mst_brkga",
+    "msf_brkga",
     "st_brkga",
     "greedy_brkga",
     "skater",
