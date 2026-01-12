@@ -34,21 +34,21 @@ def main():
         "max_generations": 1000000,
         "tolerance_generations": 400,
         "max_time": 600,  
-        "parallel_brkga": False, # "Auto",
+        "parallel_brkga": "Auto",
         "num_workers": 4,
         "seed": 10,
         "verbose": 2
     }
     
 
-    # # Apply a MST BRKGA  ------------------------------------------------
-    # print("-"*100)
-    # print("MST BRKGA \n")
-    # brkga = MST_BRKGA(graph, num_regions, diss_matrix, **config)
-    # brkga.run()
-    # brkga.print_statistics()
-    # brkga.plot_evolution(plots_path + "mst_brkga_evolution.png")  
-    # brkga.ls_improvement(graph)
+    # Apply a MST BRKGA  ------------------------------------------------
+    print("-"*100)
+    print("MST BRKGA \n")
+    brkga = MST_BRKGA(graph, num_regions, diss_matrix, **config)
+    brkga.run()
+    brkga.print_statistics()
+    brkga.plot_evolution(plots_path + "mst_brkga_evolution.png")  
+    brkga.ls_improvement(graph)
 
     # # Apply a MSF BRKGA  ------------------------------------------------
     # print("-"*100)

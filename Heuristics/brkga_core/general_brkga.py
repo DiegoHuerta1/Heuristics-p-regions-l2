@@ -166,7 +166,8 @@ class BRKGAPRegions():
             "median": np.quantile(fitness_values, 0.50),
             "q75": np.quantile(fitness_values, 0.75),
             "q90": np.quantile(fitness_values, 0.90),
-            "elite_cutoff": elite_fitness[-1]
+            "elite_cutoff": elite_fitness[-1],
+            "elite_std": elite_fitness.std(),
         }
 
     # ------------------------
@@ -402,7 +403,10 @@ class BRKGAPRegions():
         # Elite quantile
         ax.plot(df.index, df['elite_cutoff'], color='red', linestyle='--', label=f'Elite Cutoff ({100 * self.p_e/self.p:.0f}% quantile)')
         # Min
-        ax.plot(df.index, df['min'], label=f"Minimum ({df['min'].iloc[-1]:.2f})", color='red')
+        ax.plot(df.index, df['min'], label=f"Minimum", color='red')
+        # Horizontal line for best fitness
+        best = df["min"].min()
+        ax.axhline(y=best, color='black', linestyle=':', label=f'Best: {best:.2f}')
 
         ax.set_title('Population Statistics')
         ax.set_xlabel('Iteration')
