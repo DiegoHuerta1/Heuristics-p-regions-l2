@@ -249,7 +249,7 @@ class BRKGAPRegions():
                     population_statistics.append(current_pop_stats)
                     self.print_generation_info(current_pop_stats, idx)
 
-                    # Evaluate the tolerance condition 
+                    # Check for improvement
                     current_best_fitness = fitness_values[0]
                     improvement = current_best_fitness + 1e-4 < best_fitness
                     if improvement: 
@@ -258,9 +258,10 @@ class BRKGAPRegions():
                         best_chromosome = population[0]
                     else:                                          
                         generations_without_improvement += 1
+
+                    # Evaluate the tolerance condition 
                     if generations_without_improvement >= self.tolerance_generations:
                         break
-
                     # Evaluate the time condition
                     elapsed_time = time.time() - start_time
                     if elapsed_time >= self.max_time:
@@ -339,7 +340,7 @@ class BRKGAPRegions():
             population_statistics.append(current_pop_stats)
             self.print_generation_info(current_pop_stats, idx)
 
-            # Evaluate the tolerance condition 
+            # Check for improvement
             current_best_fitness = fitness_values[0]
             improvement = current_best_fitness + 1e-4 < best_fitness
             if improvement: 
@@ -348,9 +349,10 @@ class BRKGAPRegions():
                 best_chromosome = population[0]
             else:                                          
                 generations_without_improvement += 1
+
+            # Evaluate the tolerance condition 
             if generations_without_improvement >= self.tolerance_generations:
                 break
-
             # Evaluate the time condition
             elapsed_time = time.time() - start_time
             if elapsed_time >= self.max_time:
@@ -374,12 +376,15 @@ class BRKGAPRegions():
         """
         Print the statistics of the evolution
         """
+        df = self.evolution_stats["population_stats"]
+        min_val = df['min'].min()
+        assert min_val == self.evolution_stats['best_fitness']
+        iter_best_sol = df[df['min'] == min_val].loc[df[df['min'] == min_val].index.min()]
         print(f"{self.name} BRKGA results:")
-        print(f"\tBest fitness: {self.evolution_stats['best_fitness']:4f}")
+        print(f"\tBest fitness: {min_val:4f}")
         print(f"\tExecution time: {self.evolution_stats['time']:4f} seconds")
         print(f"\tLast generation: {self.evolution_stats['population_stats'].index.max()}")
-        diffs = self.evolution_stats['population_stats']['min'].round(4).diff() < 0
-        print(f"\tBest solution found on iteration: {diffs[diffs].index.max() if diffs.any() else 0}")
+        print(f"\tBest solution found on iteration: {iter_best_sol.name}")
 
     def plot_evolution(self, image_path: str | None = None):
         """
