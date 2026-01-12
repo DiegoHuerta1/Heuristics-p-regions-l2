@@ -139,29 +139,34 @@ class BRKGAPRegions():
         if self.verbose >= level:
             print(message, flush=True)
 
-    def print_generation_info(self, fitness_values: np.ndarray, idx: int):
+    def print_generation_info(self, fitness_stats: dict, idx: int):
         """
         Print information about the current generation
         """
-        _min = fitness_values.min()
-        _mean = fitness_values.mean()
-        _median = np.median(fitness_values)
-        self.print_general_info(f"\tGeneration {idx}: Best fitness = {_min:.6f}. Mean = {_mean:.6f}. Median = {_median:.6f}", level = 2)
+        _min = fitness_stats["min"]
+        _mean = fitness_stats["mean"]
+        _median = fitness_stats["median"]
+        _e_cut = fitness_stats["elite_cutoff"]
+        str_info = f"Generation {idx}. Best: {_min:.4f}. Elite cutoff = {_e_cut:.4f}"
+        str_info += f". Mean: {_mean:.4f}. Median: {_median:.4f}"
+        self.print_general_info(str_info, level = 2)
 
     def compute_statistics(self, fitness_values: np.ndarray) -> dict:
         """
         Compute statistics from the fitness values of the population
+        Called after the population is sorted
         """
+        elite_fitness = fitness_values[:self.p_e]
         return {
             "mean": fitness_values.mean(),
             "std": fitness_values.std(),
-            "min": fitness_values.min(),
+            "min": fitness_values[0],
             "q10": np.quantile(fitness_values, 0.10),
             "q25": np.quantile(fitness_values, 0.25),
             "median": np.quantile(fitness_values, 0.50),
             "q75": np.quantile(fitness_values, 0.75),
             "q90": np.quantile(fitness_values, 0.90),
-            "elite_cutoff": np.quantile(fitness_values, self.p_e/self.p) # elite quantile
+            "elite_cutoff": elite_fitness[-1]
         }
 
     # ------------------------
@@ -213,8 +218,9 @@ class BRKGAPRegions():
 
                 # Sort population and save statistics
                 population, fitness_values = self.sort_population(population, fitness_values)
-                population_statistics.append(self.compute_statistics(fitness_values))
-                self.print_generation_info(fitness_values, 0)
+                current_pop_stats = self.compute_statistics(fitness_values)
+                population_statistics.append(current_pop_stats)
+                self.print_generation_info(current_pop_stats, 0)
 
                 # Control the generation loop 
                 best_fitness = fitness_values.min()
@@ -237,8 +243,9 @@ class BRKGAPRegions():
 
                     # Sort population and save statistics
                     population, fitness_values = self.sort_population(population, fitness_values)
-                    population_statistics.append(self.compute_statistics(fitness_values))
-                    self.print_generation_info(fitness_values, idx)
+                    current_pop_stats = self.compute_statistics(fitness_values)
+                    population_statistics.append(current_pop_stats)
+                    self.print_generation_info(current_pop_stats, idx)
 
                     # Evaluate the tolerance condition 
                     current_best_fitness = np.min(fitness_values)
@@ -304,8 +311,9 @@ class BRKGAPRegions():
 
         # Sort population and save statistics
         population, fitness_values = self.sort_population(population, fitness_values)
-        population_statistics.append(self.compute_statistics(fitness_values))
-        self.print_generation_info(fitness_values, 0)
+        current_pop_stats = self.compute_statistics(fitness_values)
+        population_statistics.append(current_pop_stats)
+        self.print_generation_info(current_pop_stats, 0)
 
         # Control the generation loop 
         best_fitness = fitness_values.min()
@@ -327,8 +335,9 @@ class BRKGAPRegions():
 
             # Sort population and save statistics
             population, fitness_values = self.sort_population(population, fitness_values)
-            population_statistics.append(self.compute_statistics(fitness_values))
-            self.print_generation_info(fitness_values, idx)
+            current_pop_stats = self.compute_statistics(fitness_values)
+            population_statistics.append(current_pop_stats)
+            self.print_generation_info(current_pop_stats, idx)
 
             # Evaluate the tolerance condition 
             current_best_fitness = np.min(fitness_values)

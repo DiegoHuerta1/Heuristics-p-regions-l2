@@ -37,7 +37,7 @@ def main():
         "parallel_brkga": "Auto",
         "num_workers": 4,
         "seed": 1,
-        "verbose": 1
+        "verbose": 2
     }
     
 
