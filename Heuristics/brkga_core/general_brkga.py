@@ -223,7 +223,8 @@ class BRKGAPRegions():
                 self.print_generation_info(current_pop_stats, 0)
 
                 # Control the generation loop 
-                best_fitness = fitness_values.min()
+                best_fitness = fitness_values[0]
+                best_chromosome = population[0]
                 generations_without_improvement = 0
 
                 # Main loop (generations 1 - max_generations)
@@ -248,11 +249,13 @@ class BRKGAPRegions():
                     self.print_generation_info(current_pop_stats, idx)
 
                     # Evaluate the tolerance condition 
-                    current_best_fitness = np.min(fitness_values)
-                    if current_best_fitness + 1e-4 < best_fitness: # improvement!
+                    current_best_fitness = fitness_values[0]
+                    improvement = current_best_fitness + 1e-4 < best_fitness
+                    if improvement: 
                         generations_without_improvement = 0
                         best_fitness = current_best_fitness
-                    else:                                          # no improvement :(
+                        best_chromosome = population[0]
+                    else:                                          
                         generations_without_improvement += 1
                     if generations_without_improvement >= self.tolerance_generations:
                         break
@@ -263,15 +266,10 @@ class BRKGAPRegions():
                         break
 
                 self.print_general_info("Evolution finished", level = 1) 
-                # Get best solution
-                best_idx = np.argmin(fitness_values)
-                best_fitness = fitness_values[best_idx]
-                best_chromosome = population[best_idx]
-                best_solution = self.decoder_func(best_chromosome, self.dissimilarity_matrix)
                 # Store evolution statistics
                 self.evolution_stats = {
                     "best_chromosome": best_chromosome,
-                    "best_solution": best_solution,
+                    "best_solution": self.decoder_func(best_chromosome, self.dissimilarity_matrix),
                     "best_fitness": float(best_fitness),
                     "population_stats": pd.DataFrame(population_statistics),
                     "time": time.time() - start_time
@@ -316,7 +314,8 @@ class BRKGAPRegions():
         self.print_generation_info(current_pop_stats, 0)
 
         # Control the generation loop 
-        best_fitness = fitness_values.min()
+        best_fitness = fitness_values[0]
+        best_chromosome = population[0]
         generations_without_improvement = 0
 
         # Main loop (generations 1 - max_generations)
@@ -340,11 +339,13 @@ class BRKGAPRegions():
             self.print_generation_info(current_pop_stats, idx)
 
             # Evaluate the tolerance condition 
-            current_best_fitness = np.min(fitness_values)
-            if current_best_fitness + 1e-4 < best_fitness: # improvement!
+            current_best_fitness = fitness_values[0]
+            improvement = current_best_fitness + 1e-4 < best_fitness
+            if improvement: 
                 generations_without_improvement = 0
                 best_fitness = current_best_fitness
-            else:                                          # no improvement :(
+                best_chromosome = population[0]
+            else:                                          
                 generations_without_improvement += 1
             if generations_without_improvement >= self.tolerance_generations:
                 break
@@ -355,15 +356,10 @@ class BRKGAPRegions():
                 break
     
         self.print_general_info("Evolution finished", level = 1)
-        # Get best solution
-        best_idx = np.argmin(fitness_values)
-        best_fitness = fitness_values[best_idx]
-        best_chromosome = population[best_idx]
-        best_solution = self.decoder_func(best_chromosome, self.dissimilarity_matrix)
         # Store evolution statistics
         self.evolution_stats = {
             "best_chromosome": best_chromosome,
-            "best_solution": best_solution,
+            "best_solution": self.decoder_func(best_chromosome, self.dissimilarity_matrix),
             "best_fitness": float(best_fitness),
             "population_stats": pd.DataFrame(population_statistics),
             "time": time.time() - start_time

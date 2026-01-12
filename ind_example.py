@@ -28,15 +28,15 @@ def main():
     # BRKGA parameters
     config = {
         "population_size": 1.0,
-        "elite_fraction": 0.1,
+        "elite_fraction": 0.2,
         "mutant_fraction": 0.2,
         "crossover_rate": 0.7,
         "max_generations": 1000000,
         "tolerance_generations": 400,
         "max_time": 600,  
-        "parallel_brkga": "Auto",
+        "parallel_brkga": False, # "Auto",
         "num_workers": 4,
-        "seed": 1,
+        "seed": 10,
         "verbose": 2
     }
     
