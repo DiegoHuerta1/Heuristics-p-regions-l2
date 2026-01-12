@@ -352,7 +352,7 @@ class Batch_Execution():
                 df_analyze_K = df_analyze[df_analyze["K"] == K]
                 print("\n" + "-"*100)
                 print(f"Instance: {instance_name} - K = {K}")
-                self._print_heuristics_performance_report(heuristics, df_analyze)
+                self._print_heuristics_performance_report(heuristics, df_analyze_K)
 
 
         # Agregate analysis over all instances
