@@ -55,6 +55,15 @@ class ParallelMatrixProcessor:
         self.A_shm = np.ndarray(self.shape_A, dtype=self.dtype_A, buffer=self.shm_A.buf)
         self.A_shm[:] = A
 
+    def replace_A(self, new_A: np.ndarray):
+        """
+        Replaces matrix A in shared memory with a new matrix.
+        """
+        if new_A.shape == self.shape_A:
+            self.A_shm[:] = new_A  # overwrite in-place
+        else:
+            self._set_shared_A(new_A)
+
     def execute(self) -> np.ndarray:
         """
         Executes the parallel processing,
@@ -70,12 +79,6 @@ class ParallelMatrixProcessor:
         results_blocks = self.pool.starmap(_worker_chunk, tasks)
         vector_resultado = np.concatenate(results_blocks)
         return vector_resultado
-
-    def replace_A(self, new_A: np.ndarray):
-        """
-        Replaces matrix A in shared memory with a new matrix.
-        """
-        self._set_shared_A(new_A)
 
     def cleanup(self):
         """

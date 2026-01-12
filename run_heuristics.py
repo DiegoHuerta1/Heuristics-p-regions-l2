@@ -73,7 +73,7 @@ def main():
     max_time = args.max_time
 
     # Run
-    #model.run(max_time = max_time)  
+    model.run(max_time = max_time)  
 
 
     # ================================================
