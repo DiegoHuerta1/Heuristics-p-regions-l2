@@ -254,7 +254,7 @@ class BRKGAPRegions():
                         population[self.p_e:] = np.where(mask, perturbation, population[self.p_e:])
                         # population[self.p_e:] = self.generate_chromosome_array(size_pop2)
                         processor.replace_A(population[self.p_e:])
-                        fitness_values[self.p_e:] = fitness_values[self.p_e:] = processor.execute()
+                        fitness_values[self.p_e:] = processor.execute()
 
                     # Normal evolution
                     else:
@@ -284,6 +284,10 @@ class BRKGAPRegions():
                         best_chromosome = population[0]
                     else:                                          
                         generations_without_improvement += 1
+
+                    # Evaluate shaking criterion
+                    if current_pop_stats["elite_std"] < 1e-4:
+                        generations_shaking_criterion += 1
 
                     # Evaluate the tolerance condition 
                     if generations_without_improvement >= self.tolerance_generations:
