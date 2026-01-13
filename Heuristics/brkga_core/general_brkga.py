@@ -97,8 +97,8 @@ class BRKGAPRegions():
         self.evolution_stats: EvolutionStats
 
         # Shaking parameters
-        self.shaking_tol_generations = kwargs.get("shaking_tol_generations", 50)
-        self.shaking_parameter = kwargs.get("shaking_parameter", 0.1)
+        self.shaking_tol_generations = kwargs.get("shaking_tol_generations", np.inf)
+        self.shaking_parameter = kwargs.get("shaking_parameter", 0.5)
 
         # Describe BRKGA
         self.print_general_info(f"\n{self.name} BRKGA for P-Regions Problem", level = 1)
@@ -135,6 +135,19 @@ class BRKGAPRegions():
         population = population[sorted_indices]
         fitness_values = fitness_values[sorted_indices]
         return population, fitness_values
+    
+    def shake_population(self, population: np.ndarray) -> np.ndarray:
+        # Shake elite
+        mask = np.random.rand(self.p_e, self.n) < self.shaking_parameter
+        perturbation = self.generate_chromosome_array(self.p_e)
+        population[:self.p_e] = np.where(mask, perturbation, population[:self.p_e])
+        # Shake the rest
+        mask = np.random.rand(self.p - self.p_e, self.n) < self.shaking_parameter
+        perturbation = self.generate_chromosome_array(self.p - self.p_e)
+        population[self.p_e:] = np.where(mask, perturbation, population[self.p_e:])
+        # population[self.p_e:] = self.generate_chromosome_array(self.p - self.p_e)
+        return population
+
 
     # ------------------------
     # Utils for plots 
@@ -242,17 +255,10 @@ class BRKGAPRegions():
                         self.print_general_info(f"\tShaking population at generation {idx}", level = 1)
                         generations_shaking_criterion = 0
                         shaked_generation = True
-                        # Shake elite
-                        mask = np.random.rand(self.p_e, self.n) < self.shaking_parameter
-                        perturbation = self.generate_chromosome_array(self.p_e)
-                        population[:self.p_e] = np.where(mask, perturbation, population[:self.p_e])
+                        population = self.shake_population(population)
+                        # Compute new fitnes
                         fitness_values[:self.p_e] = np.array([self.fitness_seq(c, self.dissimilarity_matrix)
-                                                            for c in population[:self.p_e]])
-                        # Shake the rest
-                        mask = np.random.rand(size_pop2, self.n) < 0
-                        perturbation = self.generate_chromosome_array(size_pop2)
-                        population[self.p_e:] = np.where(mask, perturbation, population[self.p_e:])
-                        # population[self.p_e:] = self.generate_chromosome_array(size_pop2)
+                                                             for c in population[:self.p_e]])
                         processor.replace_A(population[self.p_e:])
                         fitness_values[self.p_e:] = processor.execute()
 
@@ -359,19 +365,9 @@ class BRKGAPRegions():
                 self.print_general_info(f"\tShaking population at generation {idx}", level = 1)
                 generations_shaking_criterion = 0
                 shaked_generation = True
-                # Shake elite
-                mask = np.random.rand(self.p_e, self.n) < self.shaking_parameter
-                perturbation = self.generate_chromosome_array(self.p_e)
-                population[:self.p_e] = np.where(mask, perturbation, population[:self.p_e])
-                fitness_values[:self.p_e] = np.array([self.fitness_seq(c, self.dissimilarity_matrix)
-                                                      for c in population[:self.p_e]])
-                # Shake the rest
-                mask = np.random.rand(size_pop2, self.n) < 0
-                perturbation = self.generate_chromosome_array(size_pop2)
-                population[self.p_e:] = np.where(mask, perturbation, population[self.p_e:])
-                # population[self.p_e:] = self.generate_chromosome_array(size_pop2)
-                fitness_values[self.p_e:] = np.array([self.fitness_seq(c, self.dissimilarity_matrix)
-                                                     for c in population[self.p_e:]])
+                population = self.shake_population(population)
+                # Compute new fitnes
+                fitness_values = np.array([self.fitness_seq(c, self.dissimilarity_matrix) for c in population])
 
             # Normal evolution
             else:

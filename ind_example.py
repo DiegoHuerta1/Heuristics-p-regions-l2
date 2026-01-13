@@ -45,7 +45,7 @@ def main():
 
     # Apply a MST BRKGA  ------------------------------------------------
     print("-"*100)
-    print("MST BRKGA \n")
+    print("MST BRKGA \n") # 5.235739
     brkga = MST_BRKGA(graph, num_regions, diss_matrix, **config)
     brkga.run()
     brkga.print_statistics()
@@ -54,7 +54,7 @@ def main():
 
     # Apply a MSF BRKGA  ------------------------------------------------
     print("-"*100)
-    print("MSF BRKGA \n")
+    print("MSF BRKGA \n") # 5.205542
     brkga = MSF_BRKGA(graph, num_regions, diss_matrix, **config)
     brkga.run()
     brkga.print_statistics()
@@ -64,7 +64,7 @@ def main():
 
     # Apply a ST BRKGA  ------------------------------------------------
     print("-"*100)
-    print("ST BRKGA\n")
+    print("ST BRKGA\n") # 5.350665
     brkga = ST_BRKGA(graph, num_regions, diss_matrix, **config)
     brkga.run()
     brkga.print_statistics()
@@ -74,7 +74,7 @@ def main():
 
     # Apply a Greedy BRKGA  ------------------------------------------------
     print("-"*100)
-    print("Greedy BRKGA\n")
+    print("Greedy BRKGA\n") # 4.980890
     brkga = Greedy_BRKGA(graph, num_regions, diss_matrix, rank = 1, **config)
     brkga.run()
     brkga.print_statistics()
