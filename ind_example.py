@@ -11,7 +11,7 @@ import os
 def main():   
  
     # Define instance
-    instance_path = "./Instances_Mexico/16.pkl"
+    instance_path = "./Instances_Mexico/15.pkl"
     plots_path = "./Example_plots/"
     os.makedirs(plots_path, exist_ok=True)
     num_regions = 10
@@ -33,11 +33,13 @@ def main():
         "crossover_rate": 0.7,
         "max_generations": 1000000,
         "tolerance_generations": 400,
+        "shaking_tol_generations": 200,
+        "shaking_parameter": 0.2,
         "max_time": 600,  
         "parallel_brkga": "Auto",
         "num_workers": 4,
-        "seed": 10,
-        "verbose": 2
+        "seed": 0,
+        "verbose": 1
     }
     
 
@@ -50,24 +52,24 @@ def main():
     brkga.plot_evolution(plots_path + "mst_brkga_evolution.png")  
     brkga.ls_improvement(graph)
 
-    # # Apply a MSF BRKGA  ------------------------------------------------
-    # print("-"*100)
-    # print("MSF BRKGA \n")
-    # brkga = MSF_BRKGA(graph, num_regions, diss_matrix, **config)
-    # brkga.run()
-    # brkga.print_statistics()
-    # brkga.plot_evolution(plots_path + "msf_brkga_evolution.png")  
-    # brkga.ls_improvement(graph)
+    # Apply a MSF BRKGA  ------------------------------------------------
+    print("-"*100)
+    print("MSF BRKGA \n")
+    brkga = MSF_BRKGA(graph, num_regions, diss_matrix, **config)
+    brkga.run()
+    brkga.print_statistics()
+    brkga.plot_evolution(plots_path + "msf_brkga_evolution.png")  
+    brkga.ls_improvement(graph)
 
 
-    # # Apply a ST BRKGA  ------------------------------------------------
-    # print("-"*100)
-    # print("ST BRKGA\n")
-    # brkga = ST_BRKGA(graph, num_regions, diss_matrix, **config)
-    # brkga.run()
-    # brkga.print_statistics()
-    # brkga.plot_evolution(plots_path + "st_brkga_evolution.png")
-    # brkga.ls_improvement(graph)
+    # Apply a ST BRKGA  ------------------------------------------------
+    print("-"*100)
+    print("ST BRKGA\n")
+    brkga = ST_BRKGA(graph, num_regions, diss_matrix, **config)
+    brkga.run()
+    brkga.print_statistics()
+    brkga.plot_evolution(plots_path + "st_brkga_evolution.png")
+    brkga.ls_improvement(graph)
 
 
     # Apply a Greedy BRKGA  ------------------------------------------------

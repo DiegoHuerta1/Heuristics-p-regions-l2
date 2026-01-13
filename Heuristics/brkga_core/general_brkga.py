@@ -96,6 +96,10 @@ class BRKGAPRegions():
         self.verbose = kwargs.get("verbose", 0)
         self.evolution_stats: EvolutionStats
 
+        # Shaking parameters
+        self.shaking_tol_generations = kwargs.get("shaking_tol_generations", 50)
+        self.shaking_parameter = kwargs.get("shaking_parameter", 0.1)
+
         # Describe BRKGA
         self.print_general_info(f"\n{self.name} BRKGA for P-Regions Problem", level = 1)
         self.print_general_info(f"Chromosome of length: {self.n}", level = 1)
@@ -151,7 +155,7 @@ class BRKGAPRegions():
         str_info += f". Mean: {_mean:.4f}. Median: {_median:.4f}"
         self.print_general_info(str_info, level = 2)
 
-    def compute_statistics(self, fitness_values: np.ndarray) -> dict:
+    def compute_statistics(self, fitness_values: np.ndarray, shaked: bool) -> dict:
         """
         Compute statistics from the fitness values of the population
         Called after the population is sorted
@@ -168,6 +172,7 @@ class BRKGAPRegions():
             "q90": np.quantile(fitness_values, 0.90),
             "elite_cutoff": elite_fitness[-1],
             "elite_std": elite_fitness.std(),
+            "shaked": shaked,
         }
 
     # ------------------------
@@ -219,7 +224,7 @@ class BRKGAPRegions():
 
                 # Sort population and save statistics
                 population, fitness_values = self.sort_population(population, fitness_values)
-                current_pop_stats = self.compute_statistics(fitness_values)
+                current_pop_stats = self.compute_statistics(fitness_values, False)
                 population_statistics.append(current_pop_stats)
                 self.print_generation_info(current_pop_stats, 0)
 
@@ -227,25 +232,46 @@ class BRKGAPRegions():
                 best_fitness = fitness_values[0]
                 best_chromosome = population[0]
                 generations_without_improvement = 0
+                generations_shaking_criterion = 0
 
                 # Main loop (generations 1 - max_generations)
                 for idx in range(1, self.max_generations + 1):
 
-                    # Create offspring and mutants
-                    offspring = self.generate_offspring(population)
-                    mutants = self.generate_chromosome_array(self.p_m)
-                    new_individuals = np.vstack((offspring, mutants))
-                    # Compute fitness of new individuals
-                    processor.replace_A(new_individuals)
-                    new_fitness = processor.execute()
+                    # Check for shaking criterion
+                    if generations_shaking_criterion >= self.shaking_tol_generations:
+                        self.print_general_info(f"\tShaking population at generation {idx}", level = 1)
+                        generations_shaking_criterion = 0
+                        shaked_generation = True
+                        # Shake elite
+                        mask = np.random.rand(self.p_e, self.n) < self.shaking_parameter
+                        perturbation = self.generate_chromosome_array(self.p_e)
+                        population[:self.p_e] = np.where(mask, perturbation, population[:self.p_e])
+                        fitness_values[:self.p_e] = np.array([self.fitness_seq(c, self.dissimilarity_matrix)
+                                                            for c in population[:self.p_e]])
+                        # Shake the rest
+                        mask = np.random.rand(size_pop2, self.n) < 0
+                        perturbation = self.generate_chromosome_array(size_pop2)
+                        population[self.p_e:] = np.where(mask, perturbation, population[self.p_e:])
+                        # population[self.p_e:] = self.generate_chromosome_array(size_pop2)
+                        processor.replace_A(population[self.p_e:])
+                        fitness_values[self.p_e:] = fitness_values[self.p_e:] = processor.execute()
 
-                    # Update population
-                    population = np.vstack((population[:self.p_e], new_individuals))
-                    fitness_values = np.concatenate((fitness_values[:self.p_e], new_fitness))
+                    # Normal evolution
+                    else:
+                        shaked_generation = False
+                        # Create offspring and mutants
+                        offspring = self.generate_offspring(population)
+                        mutants = self.generate_chromosome_array(self.p_m)
+                        population[self.p_e:] = np.vstack((offspring, mutants))
+                        # Compute fitness of new individuals
+                        processor.replace_A(population[self.p_e:])
+                        fitness_values[self.p_e:] = processor.execute()
+                                    
+                    # ---
 
                     # Sort population and save statistics
                     population, fitness_values = self.sort_population(population, fitness_values)
-                    current_pop_stats = self.compute_statistics(fitness_values)
+                    current_pop_stats = self.compute_statistics(fitness_values, shaked_generation)
                     population_statistics.append(current_pop_stats)
                     self.print_generation_info(current_pop_stats, idx)
 
@@ -311,7 +337,7 @@ class BRKGAPRegions():
 
         # Sort population and save statistics
         population, fitness_values = self.sort_population(population, fitness_values)
-        current_pop_stats = self.compute_statistics(fitness_values)
+        current_pop_stats = self.compute_statistics(fitness_values, False)
         population_statistics.append(current_pop_stats)
         self.print_generation_info(current_pop_stats, 0)
 
@@ -319,24 +345,46 @@ class BRKGAPRegions():
         best_fitness = fitness_values[0]
         best_chromosome = population[0]
         generations_without_improvement = 0
+        generations_shaking_criterion = 0
 
         # Main loop (generations 1 - max_generations)
         for idx in range(1, self.max_generations + 1):
 
-            # Create offspring and mutants
-            offspring = self.generate_offspring(population)
-            mutants = self.generate_chromosome_array(self.p_m)
-            new_individuals = np.vstack((offspring, mutants))
-            # Compute fitness of new individuals
-            new_fitness = np.array([self.fitness_seq(c, self.dissimilarity_matrix) for c in new_individuals])
+            # Check for shaking criterion
+            if generations_shaking_criterion >= self.shaking_tol_generations:
+                self.print_general_info(f"\tShaking population at generation {idx}", level = 1)
+                generations_shaking_criterion = 0
+                shaked_generation = True
+                # Shake elite
+                mask = np.random.rand(self.p_e, self.n) < self.shaking_parameter
+                perturbation = self.generate_chromosome_array(self.p_e)
+                population[:self.p_e] = np.where(mask, perturbation, population[:self.p_e])
+                fitness_values[:self.p_e] = np.array([self.fitness_seq(c, self.dissimilarity_matrix)
+                                                      for c in population[:self.p_e]])
+                # Shake the rest
+                mask = np.random.rand(size_pop2, self.n) < 0
+                perturbation = self.generate_chromosome_array(size_pop2)
+                population[self.p_e:] = np.where(mask, perturbation, population[self.p_e:])
+                # population[self.p_e:] = self.generate_chromosome_array(size_pop2)
+                fitness_values[self.p_e:] = np.array([self.fitness_seq(c, self.dissimilarity_matrix)
+                                                     for c in population[self.p_e:]])
 
-            # Update population
-            population = np.vstack((population[:self.p_e], new_individuals))
-            fitness_values = np.concatenate((fitness_values[:self.p_e], new_fitness))
+            # Normal evolution
+            else:
+                shaked_generation = False
+                # Create offspring and mutants
+                offspring = self.generate_offspring(population)
+                mutants = self.generate_chromosome_array(self.p_m)
+                population[self.p_e:] = np.vstack((offspring, mutants))
+                # Compute fitness of new individuals
+                fitness_values[self.p_e:] = np.array([self.fitness_seq(c, self.dissimilarity_matrix)
+                                                     for c in population[self.p_e:]])
+                            
+            # ---
 
             # Sort population and save statistics
             population, fitness_values = self.sort_population(population, fitness_values)
-            current_pop_stats = self.compute_statistics(fitness_values)
+            current_pop_stats = self.compute_statistics(fitness_values, shaked_generation)
             population_statistics.append(current_pop_stats)
             self.print_generation_info(current_pop_stats, idx)
 
@@ -349,6 +397,10 @@ class BRKGAPRegions():
                 best_chromosome = population[0]
             else:                                          
                 generations_without_improvement += 1
+
+            # Evaluate shaking criterion
+            if current_pop_stats["elite_std"] < 1e-4:
+                generations_shaking_criterion += 1
 
             # Evaluate the tolerance condition 
             if generations_without_improvement >= self.tolerance_generations:
@@ -385,6 +437,7 @@ class BRKGAPRegions():
         print(f"\tExecution time: {self.evolution_stats['time']:4f} seconds")
         print(f"\tLast generation: {self.evolution_stats['population_stats'].index.max()}")
         print(f"\tBest solution found on iteration: {iter_best_sol.name}")
+        print(f"\tNumber of shaked generations: {self.evolution_stats['population_stats']['shaked'].sum()}")
 
     def plot_evolution(self, image_path: str | None = None):
         """
@@ -392,26 +445,25 @@ class BRKGAPRegions():
         Saves the plot if image_path is provided,
         otherwise shows it on screen.
         """
-
         df = self.evolution_stats["population_stats"]
         if df.empty:
             self.print_general_info("No statistics to plot.", level = 1)
             return
 
         _, ax = plt.subplots(figsize=(10, 4))
-        # Interquartile range (25th to 75th percentile)
-        ax.fill_between(df.index, df['q25'], df['q75'], color='blue', alpha=0.3, label='25–75% quantile')
-        # Mean
+        # Show important statistics
+        ax.fill_between(df.index, df['q25'], df['q75'], color='blue', alpha=0.3, label='25-75% quantile')
         ax.plot(df.index, df['mean'], color='black', linestyle='--', label='Mean')
-        # Median 
         ax.plot(df.index, df['median'], color='blue', label='Median')
-        # Elite quantile
         ax.plot(df.index, df['elite_cutoff'], color='red', linestyle='--', label=f'Elite Cutoff ({100 * self.p_e/self.p:.0f}% quantile)')
-        # Min
         ax.plot(df.index, df['min'], label=f"Minimum", color='red')
         # Horizontal line for best fitness
         best = df["min"].min()
         ax.axhline(y=best, color='black', linestyle=':', label=f'Best: {best:.2f}')
+        # Horizontal lines for shaked generations
+        shaked_generations = df[df["shaked"]].index
+        for i in shaked_generations:
+            ax.axvline(x = i, color='gray', linestyle=':')
 
         ax.set_title('Population Statistics')
         ax.set_xlabel('Iteration')
