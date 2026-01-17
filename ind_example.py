@@ -33,19 +33,19 @@ def main():
         "crossover_rate": 0.7,
         "max_generations": 1000000,
         "tolerance_generations": 400,
-        "shaking_tol_generations": 200,
-        "shaking_parameter": 0.2,
+        "shaking_tol_generations": 100,
+        "shaking_parameter": 0.5,
         "max_time": 600,  
         "parallel_brkga": "Auto",
         "num_workers": 4,
-        "seed": 0,
+        "seed": 10,
         "verbose": 1
     }
     
 
     # Apply a MST BRKGA  ------------------------------------------------
     print("-"*100)
-    print("MST BRKGA \n") # 5.235739
+    print("MST BRKGA \n") 
     brkga = MST_BRKGA(graph, num_regions, diss_matrix, **config)
     brkga.run()
     brkga.print_statistics()
@@ -54,7 +54,7 @@ def main():
 
     # Apply a MSF BRKGA  ------------------------------------------------
     print("-"*100)
-    print("MSF BRKGA \n") # 5.205542
+    print("MSF BRKGA \n") 
     brkga = MSF_BRKGA(graph, num_regions, diss_matrix, **config)
     brkga.run()
     brkga.print_statistics()
@@ -64,7 +64,7 @@ def main():
 
     # Apply a ST BRKGA  ------------------------------------------------
     print("-"*100)
-    print("ST BRKGA\n") # 5.350665
+    print("ST BRKGA\n") 
     brkga = ST_BRKGA(graph, num_regions, diss_matrix, **config)
     brkga.run()
     brkga.print_statistics()
@@ -74,7 +74,7 @@ def main():
 
     # Apply a Greedy BRKGA  ------------------------------------------------
     print("-"*100)
-    print("Greedy BRKGA\n") # 4.980890
+    print("Greedy BRKGA\n") 
     brkga = Greedy_BRKGA(graph, num_regions, diss_matrix, rank = 1, **config)
     brkga.run()
     brkga.print_statistics()

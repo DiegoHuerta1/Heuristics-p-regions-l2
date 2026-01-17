@@ -21,12 +21,14 @@ brkga_config = {
     "mutant_fraction": 0.2,
     "crossover_rate": 0.7,
     "max_generations": 1000000,
-    "tolerance_generations": 400,
+    "tolerance_generations": 600,
+    "shaking_tol_generations": 200,
+    "shaking_parameter": 0.5,
     "max_time": 18000,        # 5 hours 
     "parallel_brkga": "Auto", # parallel if num_nodes >= 100
     "num_workers": 4,
     "rank": 1,
-    "verbose": 0,
+    "verbose": 1,
 }
 pygeoda_config = {
     "redcap__method": "fullorder-averagelinkage",
@@ -73,7 +75,7 @@ def main():
     max_time = args.max_time
 
     # Run
-    # model.run(max_time = max_time)  
+    model.run(max_time = max_time)  
 
 
     # ================================================

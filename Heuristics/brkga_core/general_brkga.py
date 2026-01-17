@@ -137,15 +137,12 @@ class BRKGAPRegions():
         return population, fitness_values
     
     def shake_population(self, population: np.ndarray) -> np.ndarray:
-        # Shake elite
+        # Shake elite (a little)
         mask = np.random.rand(self.p_e, self.n) < self.shaking_parameter
         perturbation = self.generate_chromosome_array(self.p_e)
         population[:self.p_e] = np.where(mask, perturbation, population[:self.p_e])
-        # Shake the rest
-        mask = np.random.rand(self.p - self.p_e, self.n) < self.shaking_parameter
-        perturbation = self.generate_chromosome_array(self.p - self.p_e)
-        population[self.p_e:] = np.where(mask, perturbation, population[self.p_e:])
-        # population[self.p_e:] = self.generate_chromosome_array(self.p - self.p_e)
+        # Shake the rest (fully)
+        population[self.p_e:] = self.generate_chromosome_array(self.p - self.p_e)
         return population
 
 
