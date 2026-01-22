@@ -9,6 +9,9 @@ from typing import Callable, Iterable
 from .parallel_processor import ParallelMatrixProcessor
 from .utils import EvolutionStats, Fit_Seq, Fit_Par, Decoder
 
+# Tolerance parameter
+TOL = 1e-6
+
 
 class BRKGAPRegions():
     """
@@ -280,7 +283,7 @@ class BRKGAPRegions():
 
                     # Check for improvement
                     current_best_fitness = fitness_values[0]
-                    improvement = current_best_fitness + 1e-4 < best_fitness
+                    improvement = current_best_fitness + TOL < best_fitness
                     if improvement: 
                         generations_without_improvement = 0
                         best_fitness = current_best_fitness
@@ -289,7 +292,7 @@ class BRKGAPRegions():
                         generations_without_improvement += 1
 
                     # Evaluate shaking criterion
-                    if current_pop_stats["elite_std"] < 1e-4:
+                    if current_pop_stats["elite_std"] < TOL and not improvement:
                         generations_shaking_criterion += 1
 
                     # Evaluate the tolerance condition 
@@ -387,7 +390,7 @@ class BRKGAPRegions():
 
             # Check for improvement
             current_best_fitness = fitness_values[0]
-            improvement = current_best_fitness + 1e-4 < best_fitness
+            improvement = current_best_fitness + TOL < best_fitness
             if improvement: 
                 generations_without_improvement = 0
                 best_fitness = current_best_fitness
@@ -396,7 +399,7 @@ class BRKGAPRegions():
                 generations_without_improvement += 1
 
             # Evaluate shaking criterion
-            if current_pop_stats["elite_std"] < 1e-4:
+            if current_pop_stats["elite_std"] < TOL and not improvement:
                 generations_shaking_criterion += 1
 
             # Evaluate the tolerance condition 
