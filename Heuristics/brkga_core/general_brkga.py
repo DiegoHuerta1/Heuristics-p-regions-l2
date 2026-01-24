@@ -205,8 +205,8 @@ class BRKGAPRegions():
 
         # Initialize pool of parallel workers
         self.print_general_info(f"{self.name} BRKGA Evolution ({self.num_workers}-parallel)", level = 1)
-        n_parallel = self.p - self.p_e
-        chunk_size =  int(np.ceil(n_parallel / self.num_workers))
+        n_parallel: int = self.p - self.p_e
+        chunk_size: int =  int(np.ceil(n_parallel / self.num_workers))
         with Pool(processes = self.num_workers,
                   initializer = self.init_worker_func, 
                   initargs= self.init_args) as pool: 
@@ -219,34 +219,34 @@ class BRKGAPRegions():
                 # Initialize population (generation 0)
 
                 # Part 1 (custom chromosome, evaluated secuentially)
-                size_pop1 = self.p_e
-                pop1 = self.chromosome_generator(size_pop1)
-                fitnes_pop1 = np.array([self.fitness_seq(c, self.dissimilarity_matrix) for c in pop1])
+                size_pop1: int = self.p_e
+                pop1: np.ndarray = self.chromosome_generator(size_pop1)
+                fitnes_pop1: np.ndarray = np.array([self.fitness_seq(c, self.dissimilarity_matrix) for c in pop1])
                 # Part 2 (normal chromosome, evaluated in parallel)
-                size_pop2 = n_parallel
-                pop2 = self.generate_chromosome_array(size_pop2)
+                size_pop2: int = n_parallel
+                pop2: np.ndarray = self.generate_chromosome_array(size_pop2)
                 processor = ParallelMatrixProcessor(pop2 ,
                                                     self.dissimilarity_matrix,
                                                     func= self.fitness_parallel, 
                                                     pool= pool,
                                                     chunk_size=chunk_size)
-                fitnes_pop2 = processor.execute()
+                fitnes_pop2: np.ndarray = processor.execute()
                 # Merge
-                population = np.vstack((pop1, pop2))
-                fitness_values = np.concatenate((fitnes_pop1, fitnes_pop2))
+                population: np.ndarray = np.vstack((pop1, pop2))
+                fitness_values: np.ndarray = np.concatenate((fitnes_pop1, fitnes_pop2))
 
                 # Sort population and save statistics
                 population, fitness_values = self.sort_population(population, fitness_values)
-                current_pop_stats = self.compute_statistics(fitness_values, False)
+                current_pop_stats: dict = self.compute_statistics(fitness_values, False)
                 population_statistics.append(current_pop_stats)
                 self.print_generation_info(current_pop_stats, 0)
 
                 # Control the generation loop 
-                best_fitness = fitness_values[0]
-                best_chromosome = population[0]
-                generations_without_improvement = 0
-                generations_shaking_criterion = 0
-                past_best_fitness = best_fitness
+                best_fitness: float = fitness_values[0]
+                best_chromosome: np.ndarray = population[0]
+                generations_without_improvement: int = 0
+                generations_shaking_criterion: int = 0
+                past_best_fitness: float = best_fitness
 
                 # Main loop (generations 1 - max_generations)
                 for idx in range(1, self.max_generations + 1):
@@ -284,7 +284,7 @@ class BRKGAPRegions():
 
                     # Check for general improvement
                     current_best_fitness = fitness_values[0]
-                    improvement = current_best_fitness + TOL < best_fitness
+                    improvement: bool = current_best_fitness + TOL < best_fitness
                     if improvement: 
                         generations_without_improvement = 0
                         best_fitness = current_best_fitness
@@ -292,7 +292,7 @@ class BRKGAPRegions():
                     else:                                          
                         generations_without_improvement += 1
                     # Check for local improvement
-                    local_improvement = current_best_fitness + TOL < past_best_fitness
+                    local_improvement: bool = current_best_fitness + TOL < past_best_fitness
                     past_best_fitness = current_best_fitness
 
                     # Evaluate shaking criterion
@@ -338,29 +338,29 @@ class BRKGAPRegions():
         self.print_general_info(f"{self.name} BRKGA Evolution (sequential)", level = 1)
 
         # Part 1 (custom chromosome)
-        size_pop1 = self.p_e
-        pop1 = self.chromosome_generator(size_pop1)
-        fitnes_pop1 = np.array([self.fitness_seq(c, self.dissimilarity_matrix) for c in pop1])
+        size_pop1: int = self.p_e
+        pop1: np.ndarray = self.chromosome_generator(size_pop1)
+        fitnes_pop1: np.ndarray = np.array([self.fitness_seq(c, self.dissimilarity_matrix) for c in pop1])
         # Part 2 (normal chromosome)
-        size_pop2 = self.p - self.p_e
-        pop2 = self.generate_chromosome_array(size_pop2)
-        fitnes_pop2 = np.array([self.fitness_seq(c, self.dissimilarity_matrix) for c in pop2])
+        size_pop2: int = self.p - self.p_e
+        pop2: np.ndarray = self.generate_chromosome_array(size_pop2)
+        fitnes_pop2: np.ndarray = np.array([self.fitness_seq(c, self.dissimilarity_matrix) for c in pop2])
         # Merge
-        population = np.vstack((pop1, pop2))
-        fitness_values = np.concatenate((fitnes_pop1, fitnes_pop2))
+        population: np.ndarray = np.vstack((pop1, pop2))
+        fitness_values: np.ndarray = np.concatenate((fitnes_pop1, fitnes_pop2))
 
         # Sort population and save statistics
         population, fitness_values = self.sort_population(population, fitness_values)
-        current_pop_stats = self.compute_statistics(fitness_values, False)
+        current_pop_stats: dict = self.compute_statistics(fitness_values, False)
         population_statistics.append(current_pop_stats)
         self.print_generation_info(current_pop_stats, 0)
 
         # Control the generation loop 
-        best_fitness = fitness_values[0]
-        best_chromosome = population[0]
-        generations_without_improvement = 0
-        generations_shaking_criterion = 0
-        past_best_fitness = best_fitness
+        best_fitness: float = fitness_values[0]
+        best_chromosome: np.ndarray = population[0]
+        generations_without_improvement: int = 0
+        generations_shaking_criterion: int = 0
+        past_best_fitness: float = best_fitness
 
         # Main loop (generations 1 - max_generations)
         for idx in range(1, self.max_generations + 1):
@@ -395,7 +395,7 @@ class BRKGAPRegions():
 
             # Check for general improvement
             current_best_fitness = fitness_values[0]
-            improvement = current_best_fitness + TOL < best_fitness
+            improvement: bool = current_best_fitness + TOL < best_fitness
             if improvement: 
                 generations_without_improvement = 0
                 best_fitness = current_best_fitness
@@ -403,7 +403,7 @@ class BRKGAPRegions():
             else:                                          
                 generations_without_improvement += 1
             # Check for local improvement
-            local_improvement = current_best_fitness + TOL < past_best_fitness
+            local_improvement: bool = current_best_fitness + TOL < past_best_fitness
             past_best_fitness = current_best_fitness
 
             # Evaluate shaking criterion
