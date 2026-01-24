@@ -246,6 +246,7 @@ class BRKGAPRegions():
                 best_chromosome = population[0]
                 generations_without_improvement = 0
                 generations_shaking_criterion = 0
+                past_best_fitness = best_fitness
 
                 # Main loop (generations 1 - max_generations)
                 for idx in range(1, self.max_generations + 1):
@@ -281,7 +282,7 @@ class BRKGAPRegions():
                     population_statistics.append(current_pop_stats)
                     self.print_generation_info(current_pop_stats, idx)
 
-                    # Check for improvement
+                    # Check for general improvement
                     current_best_fitness = fitness_values[0]
                     improvement = current_best_fitness + TOL < best_fitness
                     if improvement: 
@@ -290,9 +291,12 @@ class BRKGAPRegions():
                         best_chromosome = population[0]
                     else:                                          
                         generations_without_improvement += 1
+                    # Check for local improvement
+                    local_improvement = current_best_fitness + TOL < past_best_fitness
+                    past_best_fitness = current_best_fitness
 
                     # Evaluate shaking criterion
-                    if current_pop_stats["elite_std"] < TOL and not improvement:
+                    if current_pop_stats["elite_std"] < TOL and not local_improvement:
                         generations_shaking_criterion += 1
 
                     # Evaluate the tolerance condition 
@@ -356,6 +360,7 @@ class BRKGAPRegions():
         best_chromosome = population[0]
         generations_without_improvement = 0
         generations_shaking_criterion = 0
+        past_best_fitness = best_fitness
 
         # Main loop (generations 1 - max_generations)
         for idx in range(1, self.max_generations + 1):
@@ -388,7 +393,7 @@ class BRKGAPRegions():
             population_statistics.append(current_pop_stats)
             self.print_generation_info(current_pop_stats, idx)
 
-            # Check for improvement
+            # Check for general improvement
             current_best_fitness = fitness_values[0]
             improvement = current_best_fitness + TOL < best_fitness
             if improvement: 
@@ -397,9 +402,12 @@ class BRKGAPRegions():
                 best_chromosome = population[0]
             else:                                          
                 generations_without_improvement += 1
+            # Check for local improvement
+            local_improvement = current_best_fitness + TOL < past_best_fitness
+            past_best_fitness = current_best_fitness
 
             # Evaluate shaking criterion
-            if current_pop_stats["elite_std"] < TOL and not improvement:
+            if current_pop_stats["elite_std"] < TOL and not local_improvement:
                 generations_shaking_criterion += 1
 
             # Evaluate the tolerance condition 
