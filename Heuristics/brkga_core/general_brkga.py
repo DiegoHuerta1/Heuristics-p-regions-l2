@@ -298,6 +298,8 @@ class BRKGAPRegions():
                     # Evaluate shaking criterion
                     if current_pop_stats["elite_std"] < TOL and not local_improvement:
                         generations_shaking_criterion += 1
+                    else:
+                        generations_shaking_criterion = 0
 
                     # Evaluate the tolerance condition 
                     if generations_without_improvement >= self.tolerance_generations:
@@ -409,6 +411,8 @@ class BRKGAPRegions():
             # Evaluate shaking criterion
             if current_pop_stats["elite_std"] < TOL and not local_improvement:
                 generations_shaking_criterion += 1
+            else:
+                generations_shaking_criterion = 0
 
             # Evaluate the tolerance condition 
             if generations_without_improvement >= self.tolerance_generations:
