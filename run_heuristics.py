@@ -13,7 +13,7 @@ from Heuristics import Batch_Execution
 data_folder = "Instances_Mexico_80/" #"Instances_Mexico/"
 output_folder = "Results_Mexico_80/"  # "Results_Mexico/"
 heuristics = [] # all heuristics
-repetitions = 10
+repetitions = 5
 
 brkga_config = {
     "population_size": 1.0,  # equal to the number of genes
@@ -21,14 +21,14 @@ brkga_config = {
     "mutant_fraction": 0.2,
     "crossover_rate": 0.7,
     "max_generations": 1000000,
-    "tolerance_generations": 600,
-    "shaking_tol_generations": 200,
+    "tolerance_generations": 400,
+    "shaking_tol_generations": 1000000000, # no shaking
     "shaking_parameter": 0.5,
     "max_time": 18000,        # 5 hours 
     "parallel_brkga": "Auto", # parallel if num_nodes >= 100
     "num_workers": 4,
     "rank": 1,
-    "verbose": 1,
+    "verbose": 0,
 }
 pygeoda_config = {
     "redcap__method": "fullorder-averagelinkage",
@@ -84,9 +84,13 @@ def main():
 
     heuristics_to_analyze = [
     "mst_brkga",
+    "mst_brkga_ls"
     "msf_brkga",
+    "msf_brkga_ls",
     "st_brkga",
+    "st_brkga_ls",
     "greedy_brkga",
+    "greedy_brkga_ls",
     "skater",
     "redcap",
     "schc",
@@ -95,8 +99,6 @@ def main():
     "azp_tabu"
     ]
     model.analyze_results(heuristics_to_analyze)
-
-
 
 
 if __name__ == "__main__":

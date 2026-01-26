@@ -1,6 +1,7 @@
 import time
 from ..utils import l2_objective_function_diss_matrix, labels_to_P
 import pandas as pd
+import numpy as np
 
 brkga_heuristics_list = [
     "mst_brkga",
@@ -18,9 +19,6 @@ pygeoda_heuristics_list = [
 ]
 all_heuristics_list = brkga_heuristics_list + pygeoda_heuristics_list
 
-
-
-                  
 
 def run_brkga_heuristic(brkga_class, name, graph, num_regions, diss_matrix,
                         brkga_args, dict_results, dict_partitions, evolution_path):
@@ -40,12 +38,12 @@ def run_brkga_heuristic(brkga_class, name, graph, num_regions, diss_matrix,
     dict_results[f"{name}__last_gen"] = stats['population_stats'].index.max()
     # Chromosome length
     dict_results[f"{name}__c_len"] = model.n
-    # Local Search improvement
+    # Local Search improvement as another heuristic
     model.ls_improvement(graph)
     ls_stats = model.ls_stats
-    dict_results[f"{name}__f_ls"] = ls_stats['f_P']
-    dict_results[f"{name}__time_ls"] = ls_stats['time']
-    dict_results[f"{name}__iterations_ls"] = len(ls_stats['historial_f']) - 1
+    dict_results[f"{name}_ls__f"] = ls_stats['f_P']
+    dict_results[f"{name}_ls__time"] = ls_stats['time'] + stats['time']
+    dict_results[f"{name}_ls__iterations"] = len(ls_stats['historial_f']) - 1
     # Partition
     dict_partitions[name] = stats["best_solution"]
 
@@ -108,7 +106,8 @@ def add_relative_gap_columns(df: pd.DataFrame, heuristics: list[str]) -> pd.Data
     for h in heuristics:
         f_col = f"{h}__f"
         rel_gap_col = f"{h}__rel_gap"
-        df[rel_gap_col] = 100 * (df[f_col] - df["best_f_overall"]) / df["best_f_overall"]
+        rel_gap = 100 * (df[f_col] - df["best_f_overall"]) / df["best_f_overall"]
+        df[rel_gap_col] = np.round(rel_gap, 5)
 
     # Drop helper columns
     df = df.drop(columns = ["Name", "row_min_f", "best_f_overall"])

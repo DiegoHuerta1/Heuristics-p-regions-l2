@@ -27,7 +27,7 @@ def main():
     
     # BRKGA parameters
     config = {
-        "population_size": 200,
+        "population_size": 1.0,
         "elite_fraction": 0.2,
         "mutant_fraction": 0.2,
         "crossover_rate": 0.7,
@@ -52,34 +52,34 @@ def main():
     brkga.plot_evolution(plots_path + "mst_brkga_evolution.png")  
     brkga.ls_improvement(graph) # 225, 362, 605, f = 5.407
 
-    # # Apply a MSF BRKGA  ------------------------------------------------
-    # print("-"*100)
-    # print("MSF BRKGA \n") 
-    # brkga = MSF_BRKGA(graph, num_regions, diss_matrix, **config)
-    # brkga.run()
-    # brkga.print_statistics()
-    # brkga.plot_evolution(plots_path + "msf_brkga_evolution.png")  
-    # brkga.ls_improvement(graph)
+    # Apply a MSF BRKGA  ------------------------------------------------
+    print("-"*100)
+    print("MSF BRKGA \n") 
+    brkga = MSF_BRKGA(graph, num_regions, diss_matrix, **config)
+    brkga.run()
+    brkga.print_statistics()
+    brkga.plot_evolution(plots_path + "msf_brkga_evolution.png")  
+    brkga.ls_improvement(graph)
 
 
-    # # Apply a ST BRKGA  ------------------------------------------------
-    # print("-"*100)
-    # print("ST BRKGA\n") 
-    # brkga = ST_BRKGA(graph, num_regions, diss_matrix, **config)
-    # brkga.run()
-    # brkga.print_statistics()
-    # brkga.plot_evolution(plots_path + "st_brkga_evolution.png")
-    # brkga.ls_improvement(graph)
+    # Apply a ST BRKGA  ------------------------------------------------
+    print("-"*100)
+    print("ST BRKGA\n") 
+    brkga = ST_BRKGA(graph, num_regions, diss_matrix, **config)
+    brkga.run()
+    brkga.print_statistics()
+    brkga.plot_evolution(plots_path + "st_brkga_evolution.png")
+    brkga.ls_improvement(graph)
 
 
-    # # Apply a Greedy BRKGA  ------------------------------------------------
-    # print("-"*100)
-    # print("Greedy BRKGA\n") 
-    # brkga = Greedy_BRKGA(graph, num_regions, diss_matrix, rank = 1, **config)
-    # brkga.run()
-    # brkga.print_statistics()
-    # brkga.plot_evolution(plots_path + "greedy_brkga_evolution.png")
-    # brkga.ls_improvement(graph)
+    # Apply a Greedy BRKGA  ------------------------------------------------
+    print("-"*100)
+    print("Greedy BRKGA\n") 
+    brkga = Greedy_BRKGA(graph, num_regions, diss_matrix, rank = 1, **config)
+    brkga.run()
+    brkga.print_statistics()
+    brkga.plot_evolution(plots_path + "greedy_brkga_evolution.png")
+    brkga.ls_improvement(graph)
 
 
 if __name__ == "__main__":

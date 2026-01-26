@@ -48,6 +48,9 @@ class Batch_Execution():
         self.get_k_func: Callable[[int], list[int]] = get_k_func
         self.repetitions: int = repetitions
         self.heuristics: list[str] = heuristics if heuristics else all_heuristics_list
+        # Add ls version for the brkga
+        brkga_h = [h for h in self.heuristics if "brkga" in h]
+        self.heuristics += [f"{h}_ls" for h in brkga_h]
 
         # Input data and instances
         self.data_folder: str = data_folder
