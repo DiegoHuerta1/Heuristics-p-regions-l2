@@ -13,7 +13,7 @@ def main():
 
     # MST BRKGA ------------------------------------------------
     from Heuristics.brkga_core_deprecated.specific_brkga import MST_BRKGA as MST_BRKGA_old
-    from Heuristics.brkga_core.mst_brkga import MST_BRKGA
+    from Heuristics.brkga_core.Specific_brkga.mst_brkga import MST_BRKGA
 
     # Draw a population
     size_pop = 500
@@ -43,7 +43,7 @@ def main():
 
     # ST BRKGA ------------------------------------------------
     from Heuristics.brkga_core_deprecated.specific_brkga import ST_BRKGA as ST_BRKGA_old
-    from Heuristics.brkga_core.st_brkga import ST_BRKGA
+    from Heuristics.brkga_core.Specific_brkga.st_brkga import ST_BRKGA
 
     # Draw a population
     size_pop = 500
@@ -73,7 +73,7 @@ def main():
 
     # Greedy BRKGA ------------------------------------------------
     from Heuristics.brkga_core_deprecated.greedy_rank_decoder import chromosome_fitness
-    from Heuristics.brkga_core.greedy_brkga import Greedy_BRKGA
+    from Heuristics.brkga_core.Specific_brkga.greedy_brkga import Greedy_BRKGA
 
 
     # Draw a population

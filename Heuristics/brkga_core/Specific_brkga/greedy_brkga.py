@@ -2,10 +2,10 @@ import igraph
 import numpy as np
 from functools import partial
 
-from .general_brkga import BRKGAPRegions
-from .Decoders.greedy import greedy_decoder, greedy_fitness
-from .utils import build_adjacency_arrays, P_from_array_to_dict, P_Dict
-from ..utils import generate_dissimilarity_matrix
+from ..general_brkga import BRKGAPRegions
+from ..Decoders.greedy import greedy_decoder, greedy_fitness
+from ..utils import build_adjacency_arrays, P_from_array_to_dict, P_Dict
+from ...utils import generate_dissimilarity_matrix
 
 
 

@@ -3,10 +3,10 @@ import numpy as np
 from functools import partial
 import igraph
 
-from .general_brkga import BRKGAPRegions
-from .Decoders.st import st_fitness, st_decoder
-from .utils import build_adjacency_arrays_with_edges, P_from_array_to_dict, P_Dict
-from ..utils import generate_dissimilarity_matrix
+from ..general_brkga import BRKGAPRegions
+from ..Decoders.st import st_fitness, st_decoder
+from ..utils import build_adjacency_arrays_with_edges, P_from_array_to_dict, P_Dict
+from ...utils import generate_dissimilarity_matrix
 
 
 _WORKER_DISS_WEIGHTS = None

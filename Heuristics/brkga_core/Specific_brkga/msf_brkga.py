@@ -2,10 +2,10 @@ import igraph
 import numpy as np
 from functools import partial
 
-from .general_brkga import BRKGAPRegions
-from .Decoders.mst import mst_fitness, mst_decoder
-from .utils import P_Dict, P_from_array_to_dict
-from ..utils import generate_dissimilarity_matrix
+from ..general_brkga import BRKGAPRegions
+from ..Decoders.msf import msf_fitness, msf_decoder
+from ..utils import P_Dict, P_from_array_to_dict
+from ...utils import generate_dissimilarity_matrix
 
 
 _WORKER_NUM_NODES = None
@@ -26,12 +26,12 @@ def _init_worker(num_nodes: int, edges: np.ndarray, diss_weights: np.ndarray):
 def chromosome_fitness_wrapper(chromosome: np.ndarray, 
                                dissimilarity_matrix: np.ndarray,
                                num_edges: int, K: int) -> float:
-    return mst_fitness(chromosome, dissimilarity_matrix, num_edges, K, 
+    return msf_fitness(chromosome, dissimilarity_matrix, num_edges, K, 
                        _WORKER_NUM_NODES, _WORKER_EDGES, _WORKER_DISS_WEIGHTS) # type: ignore
 
 
 
-class MST_BRKGA(BRKGAPRegions):
+class MSF_BRKGA(BRKGAPRegions):
 
     def __init__(self, graph: igraph.Graph, num_regions: int, 
                  dissimilarity_matrix: np.ndarray | None = None, **kwargs):
@@ -53,7 +53,7 @@ class MST_BRKGA(BRKGAPRegions):
         init_args = (num_nodes, edges, diss_weights)
 
         # Sequential fitness
-        fitness_seq = partial(mst_fitness, 
+        fitness_seq = partial(msf_fitness, 
                               num_edges = num_edges, K = num_regions,
                               num_nodes = num_nodes, edges = edges,
                               diss_weights = diss_weights)
@@ -64,7 +64,7 @@ class MST_BRKGA(BRKGAPRegions):
 
         # Decoder
         def decoder_func(chromosome: np.ndarray, diss_matrix: np.ndarray) -> P_Dict:
-            p = mst_decoder(chromosome,
+            p = msf_decoder(chromosome,
                             num_edges = num_edges, K = num_regions,
                             num_nodes = num_nodes, edges = edges,
                             diss_weights = diss_weights)
@@ -72,7 +72,10 @@ class MST_BRKGA(BRKGAPRegions):
         
         # Create custom chromosomes (nothing spetial)
         def chromosome_generator(size_pop: int) -> np.ndarray:
-            return np.random.rand(size_pop, num_edges * 2)
+            pop_first_half = np.ones((size_pop, num_edges))
+            pop_second_half = np.random.rand(size_pop, num_nodes)
+            pop = np.hstack((pop_first_half, pop_second_half))
+            return pop
         
         # Select parallel vs sequential
         parallel_arg = kwargs.get("parallel_brkga", True)
@@ -86,7 +89,7 @@ class MST_BRKGA(BRKGAPRegions):
 
 
         # Parent constructor
-        super().__init__("Minimum-Spanning-Tree", chromosome_length = num_edges * 2,
+        super().__init__("Minimum-Spanning-Forest", chromosome_length = num_edges + num_nodes,
                          init_worker_func = init_worker_func,
                          init_args = init_args,
                          fitness_seq = fitness_seq,

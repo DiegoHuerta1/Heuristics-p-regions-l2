@@ -58,7 +58,7 @@ def mst_length(graph, rank):
 @given(data = draw_all_info(mst_length))
 def test_mst(data):
     from ..brkga_core_deprecated.specific_brkga import MST_BRKGA as MST_BRKGA_old
-    from ..brkga_core.mst_brkga import MST_BRKGA
+    from ..brkga_core.Specific_brkga.mst_brkga import MST_BRKGA
 
     # Draw all elements
     _, graph, diss, num_regions, pop = data
@@ -88,7 +88,7 @@ def st_length(graph, rank):
 @given(data = draw_all_info(st_length))
 def test_st(data):
     from ..brkga_core_deprecated.specific_brkga import ST_BRKGA as ST_BRKGA_old
-    from ..brkga_core.st_brkga import ST_BRKGA
+    from ..brkga_core.Specific_brkga.st_brkga import ST_BRKGA
 
     # Draw all elements
     _, graph, diss, num_regions, pop = data
@@ -118,7 +118,7 @@ def greedy_length(graph, rank):
 @given(rank=st.integers(min_value=1, max_value=5), data=st.data())
 def test_greedy(rank, data):
     from ..brkga_core_deprecated.greedy_rank_decoder import chromosome_fitness, decode
-    from ..brkga_core.greedy_brkga import Greedy_BRKGA
+    from ..brkga_core.Specific_brkga.greedy_brkga import Greedy_BRKGA
 
     # Draw all elements using the rank
     _, graph, diss, num_regions, pop = data.draw(

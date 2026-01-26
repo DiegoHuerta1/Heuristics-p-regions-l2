@@ -8,10 +8,10 @@ from pathlib import Path
 import json
 
 from ..utils import generate_dissimilarity_matrix, igraph_to_gdf
-from ..brkga_core.mst_brkga import MST_BRKGA
-from ..brkga_core.msf_brkga import MSF_BRKGA
-from ..brkga_core.st_brkga import ST_BRKGA
-from ..brkga_core.greedy_brkga import Greedy_BRKGA
+from ..brkga_core.Specific_brkga.mst_brkga import MST_BRKGA
+from ..brkga_core.Specific_brkga.msf_brkga import MSF_BRKGA
+from ..brkga_core.Specific_brkga.st_brkga import ST_BRKGA
+from ..brkga_core.Specific_brkga.greedy_brkga import Greedy_BRKGA
 from .utils import all_heuristics_list, run_brkga_heuristic, run_pygeoda_heuristic
 
 
