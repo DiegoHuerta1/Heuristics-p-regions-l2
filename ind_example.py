@@ -83,17 +83,5 @@ def main():
 
 
 if __name__ == "__main__":
-    from cProfile import Profile
-    from pstats import SortKey, Stats  
-    with Profile() as profile:
-        main()
-    
-    # # get the profile stats
-    # stats = Stats(profile)
-    # # remove extraneous paths
-    # stats.strip_dirs() 
-    # # sort by cummulative time (or by: SortKey.TIME, SortKey.CALLS)
-    # stats.sort_stats(SortKey.CUMULATIVE) 
-    # # filter stats (only top 10)
-    # stats.print_stats(10)
+    main()
     
