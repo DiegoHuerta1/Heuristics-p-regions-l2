@@ -4,10 +4,7 @@
 __pycache__/
 
 Example_plots/
-Instances_Mexico/
-Instances_Mexico_80/
 Results_Mexico/
-Results_Mexico_80/
 .hypothesis/
 .pytest_cache/
 .venv/
