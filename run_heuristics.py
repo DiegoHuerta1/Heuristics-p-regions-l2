@@ -10,26 +10,41 @@ from Heuristics import Batch_Execution
 # PARAMETERS
 # ================================================
 
-data_folder = "Instances_Mexico_80/" #"Instances_Mexico/"
-output_folder = "Results_Mexico_80/"  # "Results_Mexico/"
+data_folder = "Instances_Mexico/"
+output_folder = "Results_Mexico_1/"  
 heuristics = [] # all heuristics
 repetitions = 10
 
-brkga_config = {
+brkga_config_1 = {
     "population_size": 1.0,            # equal to the number of genes
     "elite_fraction": 0.2,
     "mutant_fraction": 0.2,
     "crossover_rate": 0.7,
     "max_generations": 1000000,
     "tolerance_generations": 500,
-    # "shaking_tol_generations": 200, 
-    # "shaking_parameter": 0.25,
     "max_time": 21600,                 # 6 hours 
     "parallel_brkga": "Auto",          # parallel if num_nodes >= 100
     "num_workers": 10,
     "rank": 1,
     "verbose": 0,
 }
+brkga_config_2 = {
+    "population_size": 500,            
+    "elite_fraction": 0.2,
+    "mutant_fraction": 0.2,
+    "crossover_rate": 0.7,
+    "max_generations": 1000000,
+    "tolerance_generations": 1000,
+    "shaking_tol_generations": 200, 
+    "shaking_parameter": 0.25,
+    "max_time": 21600,                 # 6 hours 
+    "parallel_brkga": "Auto",          # parallel if num_nodes >= 100
+    "num_workers": 10,
+    "rank": 1,
+    "verbose": 0,
+}
+
+
 pygeoda_config = {
     "redcap__method": "fullorder-averagelinkage",
     "schc__linkage_method": "complete",
@@ -52,7 +67,7 @@ def main():
     # ================================================
 
     model = Batch_Execution(
-        brkga_config = brkga_config,
+        brkga_config = brkga_config_1,
         pygeoda_config = pygeoda_config,
         get_k_func = get_number_of_regions,
         data_folder = data_folder,
@@ -75,7 +90,8 @@ def main():
     max_time = args.max_time
 
     # Run
-    model.run(max_time = max_time)  
+    if max_time > 0:
+        model.run(max_time = max_time)  
 
 
     # ================================================
@@ -83,13 +99,13 @@ def main():
     # ================================================
 
     heuristics_to_analyze = [
-    "mst_brkga",
+    # "mst_brkga",
     "mst_brkga_ls",
-    "msf_brkga",
+    # "msf_brkga",
     "msf_brkga_ls",
-    "st_brkga",
+    # "st_brkga",
     "st_brkga_ls",
-    "greedy_brkga",
+    # "greedy_brkga",
     "greedy_brkga_ls",
     "skater",
     "redcap",
